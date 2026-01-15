@@ -17,7 +17,7 @@ export const DIFFICULTY_CONFIG = {
   TIERS: [
     {
       tier: 1,
-      levelRange: [1, 5] as [number, number],
+      levelRange: [1, 3] as [number, number],
       operations: ['addition', 'subtraction'] as OperationCategory[],
       digitType: 'single' as DigitType,
       resetTime: true,
@@ -25,7 +25,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 2,
-      levelRange: [6, 10] as [number, number],
+      levelRange: [4, 6] as [number, number],
       operations: ['addition', 'subtraction', 'multiplication', 'division'] as OperationCategory[],
       digitType: 'single' as DigitType,
       resetTime: true,
@@ -33,7 +33,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 3,
-      levelRange: [11, 15] as [number, number],
+      levelRange: [7, 9] as [number, number],
       operations: ['multiplication', 'division', 'fraction'] as OperationCategory[],
       digitType: 'single' as DigitType,
       resetTime: true,
@@ -41,7 +41,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 4,
-      levelRange: [16, 20] as [number, number],
+      levelRange: [10, 12] as [number, number],
       operations: ['division', 'fraction', 'improperFraction'] as OperationCategory[],
       digitType: 'single' as DigitType,
       resetTime: true,
@@ -49,7 +49,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 5,
-      levelRange: [21, 25] as [number, number],
+      levelRange: [13, 15] as [number, number],
       operations: ['fraction', 'improperFraction', 'percentage'] as OperationCategory[],
       digitType: 'single' as DigitType,
       resetTime: true,
@@ -57,7 +57,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 6,
-      levelRange: [26, 30] as [number, number],
+      levelRange: [16, 18] as [number, number],
       operations: ['improperFraction', 'percentage', 'metricConversion'] as OperationCategory[],
       digitType: 'single' as DigitType,
       resetTime: true,
@@ -65,7 +65,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 7,
-      levelRange: [31, 35] as [number, number],
+      levelRange: [19, 21] as [number, number],
       operations: ['addition', 'subtraction'] as OperationCategory[],
       digitType: 'double' as DigitType,
       resetTime: true,
@@ -73,7 +73,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 8,
-      levelRange: [36, 40] as [number, number],
+      levelRange: [20, 24] as [number, number],
       operations: ['addition', 'subtraction', 'multiplication', 'division'] as OperationCategory[],
       digitType: 'double' as DigitType,
       resetTime: true,
@@ -81,7 +81,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 9,
-      levelRange: [41, 45] as [number, number],
+      levelRange: [25, 27] as [number, number],
       operations: ['multiplication', 'division', 'fraction'] as OperationCategory[],
       digitType: 'double' as DigitType,
       resetTime: true,
@@ -89,7 +89,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 10,
-      levelRange: [46, 50] as [number, number],
+      levelRange: [28, 30] as [number, number],
       operations: ['division', 'fraction', 'improperFraction'] as OperationCategory[],
       digitType: 'double' as DigitType,
       resetTime: true,
@@ -97,7 +97,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 11,
-      levelRange: [51, 55] as [number, number],
+      levelRange: [31, 33] as [number, number],
       operations: ['fraction', 'improperFraction', 'percentage'] as OperationCategory[],
       digitType: 'double' as DigitType,
       resetTime: true,
@@ -105,7 +105,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 12,
-      levelRange: [56, 60] as [number, number],
+      levelRange: [34, 36] as [number, number],
       operations: ['improperFraction', 'percentage', 'metricConversion'] as OperationCategory[],
       digitType: 'double' as DigitType,
       resetTime: true,
@@ -113,7 +113,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 13,
-      levelRange: [61, 65] as [number, number],
+      levelRange: [37, 39] as [number, number],
       operations: ['addition', 'subtraction'] as OperationCategory[],
       digitType: 'triple' as DigitType,
       resetTime: true,
@@ -121,7 +121,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 14,
-      levelRange: [66, 70] as [number, number],
+      levelRange: [40, 42] as [number, number],
       operations: ['addition', 'subtraction', 'multiplication', 'division'] as OperationCategory[],
       digitType: 'triple' as DigitType,
       resetTime: true,
@@ -129,7 +129,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 15,
-      levelRange: [71, 75] as [number, number],
+      levelRange: [43, 45] as [number, number],
       operations: ['multiplication', 'division', 'fraction'] as OperationCategory[],
       digitType: 'triple' as DigitType,
       resetTime: true,
@@ -137,7 +137,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 16,
-      levelRange: [76, 80] as [number, number],
+      levelRange: [46, 48] as [number, number],
       operations: ['division', 'fraction', 'improperFraction'] as OperationCategory[],
       digitType: 'triple' as DigitType,
       resetTime: true,
@@ -145,7 +145,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 17,
-      levelRange: [81, 85] as [number, number],
+      levelRange: [49, 51] as [number, number],
       operations: ['fraction', 'improperFraction', 'percentage'] as OperationCategory[],
       digitType: 'triple' as DigitType,
       resetTime: true,
@@ -153,7 +153,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 18,
-      levelRange: [86, 90] as [number, number],
+      levelRange: [52, 54] as [number, number],
       operations: ['improperFraction', 'percentage', 'metricConversion'] as OperationCategory[],
       digitType: 'triple' as DigitType,
       resetTime: true,
@@ -161,7 +161,7 @@ export const DIFFICULTY_CONFIG = {
     },
     {
       tier: 8,
-      levelRange: [91, 200] as [number, number],
+      levelRange: [55, 200] as [number, number],
       operations: ['addition', 'subtraction', 'multiplication', 'division', 'fraction', 'improperFraction', 'percentage', 'metricConversion'] as OperationCategory[],
       digitType: 'triple' as DigitType,
       resetTime: true,
@@ -176,7 +176,7 @@ export const DIFFICULTY_CONFIG = {
   DIGIT_RANGES: {
     single: { min: 1, max: 9 },
     double: { min: 10, max: 99 },
-    triple: { min: 100, max: 999 }
+    triple: { min: 100, max: 500 }
   } as Record<DigitType, { min: number; max: number }>,
 
   // Multiplication limits to keep answers reasonable
