@@ -703,8 +703,8 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      {/* Fixed Top User Bar - visible on all screens when logged in */}
+    <>
+      {/* Fixed Top User Bar - OUTSIDE app-container to avoid iOS Safari stacking issues */}
       {authUser && (
         <div className="user-top-bar">
           <span className="user-info">
@@ -723,13 +723,15 @@ function App() {
         </div>
       )}
 
-      {/* Leaderboard Modal */}
+      {/* Leaderboard Modal - OUTSIDE app-container */}
       {showLeaderboard && (
         <Leaderboard
           currentPlayer={currentPlayer}
           onClose={() => setShowLeaderboard(false)}
         />
       )}
+
+      <div className="app-container">
 
       {gameState === 'MENU' && (
         <div className="menu-screen">
@@ -846,7 +848,8 @@ function App() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

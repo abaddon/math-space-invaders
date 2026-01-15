@@ -187,12 +187,12 @@ body {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-  margin-top: 50px; /* Account for user bar */
+  margin-top: 0; /* Default: no margin */
 }
 
-/* When there's no user bar, remove the margin */
-.app-container:not(:has(.user-top-bar)) .game-container {
-  margin-top: 0;
+/* When user bar is visible, add margin to account for it */
+body:has(.user-top-bar) .game-container {
+  margin-top: 50px;
 }
 
 canvas {
@@ -444,7 +444,7 @@ canvas {
 
   /* On mobile, game container fills the screen below user bar */
   .game-container {
-    margin-top: 45px;
+    margin-top: 0;
     position: fixed;
     top: 0;
     left: 0;
@@ -452,8 +452,9 @@ canvas {
     bottom: 0;
   }
 
-  .app-container:not(:has(.user-top-bar)) .game-container {
-    margin-top: 0;
+  /* When user bar is visible on mobile, adjust margin */
+  body:has(.user-top-bar) .game-container {
+    margin-top: 45px;
   }
 
   /* Remove rounded corners and shadow on mobile for full-screen look */
@@ -684,8 +685,9 @@ canvas {
 }
 
 /* Add padding to content when user bar is visible */
-.app-container:has(.user-top-bar) .menu-screen,
-.app-container:has(.user-top-bar) .game-over-screen {
+/* User bar is now outside app-container, so we use body:has selector */
+body:has(.user-top-bar) .menu-screen,
+body:has(.user-top-bar) .game-over-screen {
   padding-top: 60px;
 }
 
