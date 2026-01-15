@@ -666,7 +666,7 @@ function App() {
           <div className="user-stats">
             <span className="user-score">🏆 {currentPlayer?.highScore || 0}</span>
             <button className="leaderboard-bar-btn" onClick={() => setShowLeaderboard(true)} title="Leaderboard">
-              📊
+              🏆 Leaderboard
             </button>
           </div>
           <button className="logout-btn" onClick={handleLogout} title="Logout">
