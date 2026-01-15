@@ -4,6 +4,10 @@ An educational game that helps kids learn math through engaging Space Invaders-s
 
 ![Game Preview](https://img.shields.io/badge/Platform-Web-blue) ![License](https://img.shields.io/badge/License-MIT-green) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
 
+## 🎮 Play Now!
+
+**[▶️ Play Math Space Invaders](https://abaddon83.github.io/math-space-invaders/)**
+
 ## 🎮 How to Play
 
 - **← → or A/D**: Move your spaceship left and right
@@ -42,7 +46,7 @@ Shoot the correct answer to the math problem shown at the bottom of the screen. 
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/math-space-invaders.git
+git clone https://github.com/abaddon83/math-space-invaders.git
 
 # Navigate to project directory
 cd math-space-invaders
