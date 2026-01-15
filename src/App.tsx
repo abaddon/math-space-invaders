@@ -610,6 +610,20 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Fixed Top User Bar - visible on all screens when logged in */}
+      {authUser && (
+        <div className="user-top-bar">
+          <span className="user-info">
+            <span className="user-avatar">👨‍🚀</span>
+            <span className="user-name">{authUser.nickname}</span>
+          </span>
+          <span className="user-score">🏆 {currentPlayer?.highScore || 0}</span>
+          <button className="logout-btn" onClick={handleLogout} title="Logout">
+            🚪 Logout
+          </button>
+        </div>
+      )}
+
       {/* Leaderboard Modal */}
       {showLeaderboard && (
         <Leaderboard
@@ -621,17 +635,6 @@ function App() {
       {gameState === 'MENU' && (
         <div className="menu-screen">
           <div className="stars-bg"></div>
-
-          {/* Player info bar with logout */}
-          {authUser && (
-            <div className="player-bar">
-              <span className="player-name">👨‍🚀 {authUser.nickname}</span>
-              <span className="player-high-score">🏆 {currentPlayer?.highScore || 0}</span>
-              <button className="logout-btn" onClick={handleLogout} title="Logout">
-                🚪
-              </button>
-            </div>
-          )}
 
           <h1 className="title">
             <span className="title-math">MATH</span>

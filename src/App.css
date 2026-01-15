@@ -518,42 +518,65 @@ canvas {
   margin-top: 20px;
 }
 
-/* Player Bar (in menu) */
-.player-bar {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+/* Fixed User Top Bar */
+.user-top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
   display: flex;
   align-items: center;
-  gap: 15px;
-  background: rgba(42, 42, 74, 0.8);
-  padding: 8px 15px;
-  border-radius: 20px;
-  border: 1px solid #4a4a7a;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: rgba(10, 10, 26, 0.95);
+  border-bottom: 2px solid #4a4a7a;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  z-index: 500;
 }
 
-.player-name {
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  font-size: 24px;
+}
+
+.user-name {
   color: #00d4ff;
   font-weight: bold;
-}
-
-.player-high-score {
-  color: #00ff88;
-  font-size: 14px;
-}
-
-.change-player-btn {
-  background: transparent;
-  border: none;
   font-size: 16px;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s;
 }
 
-.change-player-btn:hover {
-  opacity: 1;
+.user-score {
+  color: #00ff88;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.logout-btn {
+  background: rgba(255, 71, 87, 0.2);
+  border: 1px solid #ff4757;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 14px;
+  color: #ff4757;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: #ff4757;
+  color: #ffffff;
+}
+
+/* Add padding to content when user bar is visible */
+.app-container:has(.user-top-bar) .menu-screen,
+.app-container:has(.user-top-bar) .game-over-screen {
+  padding-top: 60px;
 }
 
 /* Leaderboard Button */
@@ -810,9 +833,27 @@ canvas {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .player-bar {
+  /* Responsive user top bar */
+  .user-top-bar {
+    padding: 0 10px;
+    height: 45px;
+  }
+
+  .user-avatar {
+    font-size: 20px;
+  }
+
+  .user-name {
     font-size: 14px;
-    padding: 6px 12px;
+  }
+
+  .user-score {
+    font-size: 14px;
+  }
+
+  .logout-btn {
+    padding: 5px 10px;
+    font-size: 12px;
   }
 }
 
@@ -984,22 +1025,6 @@ canvas {
   color: #a0a0a0;
   margin-top: 15px;
   font-size: 16px;
-}
-
-/* Logout Button */
-.logout-btn {
-  background: transparent;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s, transform 0.2s;
-  padding: 4px;
-}
-
-.logout-btn:hover {
-  opacity: 1;
-  transform: scale(1.1);
 }
 
 /* Responsive for auth */
