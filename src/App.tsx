@@ -23,6 +23,22 @@ function App() {
   const gameLoopRef = useRef<number | null>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   const isProcessingWrongAnswer = useRef(false);
+  const touchControlsActive = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  // Detect touch device
+  useEffect(() => {
+    const checkTouchDevice = () => {
+      setIsTouchDevice(
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        window.matchMedia('(pointer: coarse)').matches
+      );
+    };
+    checkTouchDevice();
+    window.addEventListener('resize', checkTouchDevice);
+    return () => window.removeEventListener('resize', checkTouchDevice);
+  }, []);
 
   // Initialize canvas size
   useEffect(() => {
@@ -171,12 +187,12 @@ function App() {
     if (gameState !== 'PLAYING') return;
 
     const gameLoop = () => {
-      // Handle keyboard movement
+      // Handle keyboard and touch movement
       const moveSpeed = 8;
-      if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('a')) {
+      if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('a') || touchControlsActive.current.left) {
         setStarshipX((x) => Math.max(GAME_CONFIG.STARSHIP_WIDTH / 2, x - moveSpeed));
       }
-      if (keysPressed.current.has('ArrowRight') || keysPressed.current.has('d')) {
+      if (keysPressed.current.has('ArrowRight') || keysPressed.current.has('d') || touchControlsActive.current.right) {
         setStarshipX((x) =>
           Math.min(canvasSize.width - GAME_CONFIG.STARSHIP_WIDTH / 2, x + moveSpeed)
         );
@@ -452,9 +468,9 @@ function App() {
     }
   }, [canvasSize, gameState, score, currentProblem, answerBlocks, projectile, starshipX, lastHitResult]);
 
-  // Handle canvas click
+  // Handle canvas click (desktop only)
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (gameState !== 'PLAYING') return;
+    if (gameState !== 'PLAYING' || isTouchDevice) return;
 
     const rect = canvasRef.current?.getBoundingClientRect();
     if (rect) {
@@ -464,16 +480,25 @@ function App() {
     fireProjectile();
   };
 
-  // Handle touch
-  const handleCanvasTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (gameState !== 'PLAYING') return;
-    e.preventDefault();
+  // Touch control handlers
+  const handleMoveLeftStart = () => {
+    touchControlsActive.current.left = true;
+  };
 
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect && e.touches[0]) {
-      const x = e.touches[0].clientX - rect.left;
-      setStarshipX(Math.max(30, Math.min(canvasSize.width - 30, x)));
-    }
+  const handleMoveLeftEnd = () => {
+    touchControlsActive.current.left = false;
+  };
+
+  const handleMoveRightStart = () => {
+    touchControlsActive.current.right = true;
+  };
+
+  const handleMoveRightEnd = () => {
+    touchControlsActive.current.right = false;
+  };
+
+  const handleFireTouch = (e: React.TouchEvent) => {
+    e.preventDefault();
     fireProjectile();
   };
 
@@ -543,8 +568,6 @@ function App() {
             width={canvasSize.width}
             height={canvasSize.height}
             onClick={handleCanvasClick}
-            onTouchStart={handleCanvasTouch}
-            onTouchMove={handleCanvasTouch}
           />
           {gameState === 'PLAYING' && (
             <button className="pause-btn" onClick={() => setGameState('PAUSED')}>⏸</button>
@@ -555,6 +578,40 @@ function App() {
               <button onClick={startGame}>🔄 Restart</button>
               <button onClick={() => setGameState('MENU')}>🏠 Menu</button>
             </div>
+          )}
+
+          {/* Touch controls for mobile devices */}
+          {isTouchDevice && gameState === 'PLAYING' && (
+            <>
+              {/* Fire button - left side */}
+              <button
+                className="touch-control fire-btn"
+                onTouchStart={handleFireTouch}
+                onTouchEnd={(e) => e.preventDefault()}
+              >
+                🔥
+              </button>
+
+              {/* Movement buttons - right side */}
+              <div className="touch-control move-controls">
+                <button
+                  className="move-btn left-btn"
+                  onTouchStart={handleMoveLeftStart}
+                  onTouchEnd={handleMoveLeftEnd}
+                  onTouchCancel={handleMoveLeftEnd}
+                >
+                  ◀
+                </button>
+                <button
+                  className="move-btn right-btn"
+                  onTouchStart={handleMoveRightStart}
+                  onTouchEnd={handleMoveRightEnd}
+                  onTouchCancel={handleMoveRightEnd}
+                >
+                  ▶
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}
