@@ -1,19 +1,27 @@
 // Game Constants
+// Note: Difficulty settings are now in config/difficultyConfig.ts
 
 export const GAME_CONFIG = {
-  BASE_ANSWER_SPEED: 1.2,
-  SPEED_INCREMENT: 0.3,
-  MAX_SPEED_MULTIPLIER: 2.5,
+  // Legacy speed settings (kept for reference, now using time-based system)
+  // BASE_ANSWER_SPEED: 1.2,
+  // SPEED_INCREMENT: 0.3,
+  // MAX_SPEED_MULTIPLIER: 2.5,
+
   PROJECTILE_SPEED: 15,
   CORRECT_ANSWERS_PER_LEVEL: 10,
   INITIAL_LIVES: 3,
   STARSHIP_WIDTH: 60,
   STARSHIP_HEIGHT: 50,
-  ANSWER_BLOCK_WIDTH: 80,
+  ANSWER_BLOCK_WIDTH: 100,  // Increased for longer answers (fractions, units)
   ANSWER_BLOCK_HEIGHT: 50,
   PROJECTILE_WIDTH: 6,
   PROJECTILE_HEIGHT: 20,
   LEVEL_UP_DELAY: 2000,
+
+  // Fall zone calculations (used for time-based speed)
+  HUD_HEIGHT: 50,
+  PROBLEM_AREA_HEIGHT: 60,
+  STARSHIP_ZONE_HEIGHT: 100,
 };
 
 export const COLORS = {

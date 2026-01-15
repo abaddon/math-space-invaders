@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { GameState, GameScore, MathProblem, AnswerBlock, Projectile, PlayerProfile, AuthUser } from './types';
+import type { GameState, GameScore, MathProblem, AnswerBlock, Projectile, PlayerProfile, AuthUser, LevelConfig } from './types';
 import { GAME_CONFIG, COLORS } from './constants';
-import { generateMathProblem, generateAnswerBlocks } from './mathGenerator';
+import { generateMathProblem, generateAnswerBlocks, getLevelConfig, calculateFallSpeed } from './mathGenerator';
 import { AuthScreen } from './components/AuthScreen';
 import { Leaderboard } from './components/Leaderboard';
 import { getSession, validateSession, signOut } from './authService';
 import { getPlayerProfile, updatePlayerStats } from './leaderboardService';
+import { getTierDescription, isNewTier } from './utils/levelUtils';
 import './App.css';
 
 type AppScreen = 'AUTH' | 'MENU' | 'GAME';
@@ -26,6 +27,9 @@ function App() {
   const [starshipX, setStarshipX] = useState(0);
   const [lastHitResult, setLastHitResult] = useState<'correct' | 'wrong' | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 400, height: 600 });
+
+  // Level configuration state
+  const [levelConfig, setLevelConfig] = useState<LevelConfig | null>(null);
 
   // Auth state
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -133,21 +137,26 @@ function App() {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  // Calculate speed based on level
-  const getCurrentSpeed = useCallback((level: number): number => {
-    const multiplier = Math.min(
-      1 + (level - 1) * GAME_CONFIG.SPEED_INCREMENT,
-      GAME_CONFIG.MAX_SPEED_MULTIPLIER
-    );
-    return GAME_CONFIG.BASE_ANSWER_SPEED * multiplier;
-  }, []);
+  // Update level config when level changes
+  useEffect(() => {
+    const config = getLevelConfig(score.level);
+    setLevelConfig(config);
+  }, [score.level]);
+
+  // Calculate speed based on time-based difficulty system
+  const getCurrentSpeed = useCallback((): number => {
+    if (!levelConfig) return 1.5; // Default fallback
+
+    // Calculate fall speed based on time available
+    return calculateFallSpeed(canvasSize.height, levelConfig.timeAvailable);
+  }, [levelConfig, canvasSize.height]);
 
   // Generate new round
   const generateNewRound = useCallback(() => {
     const problem = generateMathProblem(score.level);
     setCurrentProblem(problem);
     const blocks = generateAnswerBlocks(
-      problem.correctAnswer,
+      problem,
       canvasSize.width,
       GAME_CONFIG.ANSWER_BLOCK_WIDTH,
       80
@@ -281,8 +290,8 @@ function App() {
         );
       }
 
-      // Update answer blocks
-      const speed = getCurrentSpeed(score.level);
+      // Update answer blocks with time-based speed
+      const speed = getCurrentSpeed();
       const bottomLimit = canvasSize.height - 100;
 
       setAnswerBlocks((blocks) => {
@@ -338,7 +347,7 @@ function App() {
     return () => {
       if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
     };
-  }, [gameState, score.level, canvasSize, getCurrentSpeed, handleCorrectAnswer, handleWrongAnswer]);
+  }, [gameState, canvasSize, getCurrentSpeed, handleCorrectAnswer, handleWrongAnswer]);
 
   // Draw game
   useEffect(() => {
@@ -372,26 +381,37 @@ function App() {
       // Draw score
       ctx.fillStyle = COLORS.PRIMARY_GREEN;
       ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'left';
       ctx.fillText(`Score: ${score.score}`, 15, 30);
 
-      // Draw level
+      // Draw level and tier info
       ctx.fillStyle = COLORS.PRIMARY_BLUE;
-      ctx.fillText(`Level: ${score.level}`, canvasSize.width / 2 - 30, 30);
+      ctx.textAlign = 'center';
+      ctx.fillText(`Level: ${score.level}`, canvasSize.width / 2, 20);
+
+      // Draw time indicator (smaller text)
+      if (levelConfig) {
+        ctx.fillStyle = COLORS.TEXT_GRAY;
+        ctx.font = '10px Arial';
+        ctx.fillText(`${levelConfig.timeAvailable.toFixed(1)}s`, canvasSize.width / 2, 32);
+      }
 
       // Draw lives
       ctx.fillStyle = COLORS.WARNING_RED;
+      ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'right';
       for (let i = 0; i < score.lives; i++) {
-        ctx.fillText('♥', canvasSize.width - 80 + i * 25, 30);
+        ctx.fillText('♥', canvasSize.width - 15 - (score.lives - 1 - i) * 25, 30);
       }
 
       // Draw progress bar
       const progressWidth = 100;
       const progressX = canvasSize.width / 2 - progressWidth / 2;
       ctx.fillStyle = '#333';
-      ctx.fillRect(progressX, 38, progressWidth, 6);
+      ctx.fillRect(progressX, 42, progressWidth, 4);
       ctx.fillStyle = COLORS.PRIMARY_BLUE;
       const progress = (score.correctInLevel / GAME_CONFIG.CORRECT_ANSWERS_PER_LEVEL) * progressWidth;
-      ctx.fillRect(progressX, 38, progress, 6);
+      ctx.fillRect(progressX, 42, progress, 4);
 
       // Draw answer blocks
       answerBlocks.forEach((block) => {
@@ -411,26 +431,32 @@ function App() {
         // Eyes (alien style)
         ctx.fillStyle = COLORS.PRIMARY_GREEN;
         ctx.beginPath();
-        ctx.arc(block.x - 15, by - 3, 6, 0, Math.PI * 2);
-        ctx.arc(block.x + 15, by - 3, 6, 0, Math.PI * 2);
+        ctx.arc(block.x - 20, by - 3, 6, 0, Math.PI * 2);
+        ctx.arc(block.x + 20, by - 3, 6, 0, Math.PI * 2);
         ctx.fill();
 
         // Antennae
         ctx.strokeStyle = COLORS.PRIMARY_PURPLE;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(block.x - 15, by - 9);
-        ctx.lineTo(block.x - 15, by - 18);
-        ctx.moveTo(block.x + 15, by - 9);
-        ctx.lineTo(block.x + 15, by - 18);
+        ctx.moveTo(block.x - 20, by - 9);
+        ctx.lineTo(block.x - 20, by - 18);
+        ctx.moveTo(block.x + 20, by - 9);
+        ctx.lineTo(block.x + 20, by - 18);
         ctx.stroke();
 
-        // Number
+        // Answer value - adjust font size based on content length
+        const valueStr = String(block.value);
+        let fontSize = 24;
+        if (valueStr.length > 6) fontSize = 14;
+        else if (valueStr.length > 4) fontSize = 18;
+        else if (valueStr.length > 2) fontSize = 20;
+
         ctx.fillStyle = COLORS.TEXT_WHITE;
-        ctx.font = 'bold 24px Arial';
+        ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(block.value.toString(), block.x, block.y);
+        ctx.fillText(valueStr, block.x, block.y);
       });
 
       // Draw projectile
@@ -495,11 +521,18 @@ function App() {
 
       if (currentProblem) {
         ctx.fillStyle = COLORS.TEXT_WHITE;
-        ctx.font = 'bold 28px Arial';
+        // Adjust font size for longer problems
+        const problemLen = currentProblem.displayString.length;
+        let problemFontSize = 28;
+        if (problemLen > 30) problemFontSize = 18;
+        else if (problemLen > 20) problemFontSize = 22;
+
+        ctx.font = `bold ${problemFontSize}px Arial`;
         ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
         ctx.shadowColor = COLORS.PRIMARY_BLUE;
         ctx.shadowBlur = 10;
-        ctx.fillText(currentProblem.displayString, canvasSize.width / 2, canvasSize.height - 25);
+        ctx.fillText(currentProblem.displayString, canvasSize.width / 2, canvasSize.height - 30);
         ctx.shadowBlur = 0;
       }
 
@@ -538,18 +571,31 @@ function App() {
       ctx.shadowBlur = 20;
       ctx.font = 'bold 42px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('LEVEL UP!', canvasSize.width / 2, canvasSize.height / 2 - 50);
+      ctx.fillText('LEVEL UP!', canvasSize.width / 2, canvasSize.height / 2 - 60);
 
       ctx.fillStyle = COLORS.PRIMARY_BLUE;
       ctx.font = 'bold 64px Arial';
-      ctx.fillText(score.level.toString(), canvasSize.width / 2, canvasSize.height / 2 + 30);
+      ctx.fillText(score.level.toString(), canvasSize.width / 2, canvasSize.height / 2 + 20);
 
       ctx.shadowBlur = 0;
-      ctx.fillStyle = COLORS.WARNING_ORANGE;
-      ctx.font = '18px Arial';
-      ctx.fillText('Speed increasing...', canvasSize.width / 2, canvasSize.height / 2 + 80);
+
+      // Show tier description if entering new tier
+      if (isNewTier(score.level)) {
+        ctx.fillStyle = COLORS.WARNING_ORANGE;
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('NEW TIER!', canvasSize.width / 2, canvasSize.height / 2 + 60);
+
+        ctx.fillStyle = COLORS.TEXT_WHITE;
+        ctx.font = '14px Arial';
+        const desc = getTierDescription(score.level);
+        ctx.fillText(desc, canvasSize.width / 2, canvasSize.height / 2 + 85);
+      } else {
+        ctx.fillStyle = COLORS.WARNING_ORANGE;
+        ctx.font = '18px Arial';
+        ctx.fillText('Speed increasing...', canvasSize.width / 2, canvasSize.height / 2 + 70);
+      }
     }
-  }, [canvasSize, gameState, score, currentProblem, answerBlocks, projectile, starshipX, lastHitResult]);
+  }, [canvasSize, gameState, score, currentProblem, answerBlocks, projectile, starshipX, lastHitResult, levelConfig]);
 
   // Handle canvas click (desktop only)
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
