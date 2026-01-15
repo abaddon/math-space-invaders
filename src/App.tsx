@@ -1,23 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { GameState, GameScore, MathProblem, AnswerBlock, Projectile, PlayerProfile } from './types';
+import type { GameState, GameScore, MathProblem, AnswerBlock, Projectile, PlayerProfile, AuthUser } from './types';
 import { GAME_CONFIG, COLORS } from './constants';
 import { generateMathProblem, generateAnswerBlocks } from './mathGenerator';
-import { PlayerSelect } from './components/PlayerSelect';
+import { AuthScreen } from './components/AuthScreen';
 import { Leaderboard } from './components/Leaderboard';
-import {
-  getOrCreatePlayerId,
-  getStoredNickname,
-  savePlayerProfile,
-  getPlayerProfile,
-  updatePlayerStats
-} from './leaderboardService';
+import { getSession, validateSession, signOut } from './authService';
+import { getPlayerProfile, updatePlayerStats } from './leaderboardService';
 import './App.css';
 
-type AppScreen = 'PLAYER_SELECT' | 'MENU' | 'GAME';
+type AppScreen = 'AUTH' | 'MENU' | 'GAME';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [appScreen, setAppScreen] = useState<AppScreen>('PLAYER_SELECT');
+  const [appScreen, setAppScreen] = useState<AppScreen>('AUTH');
   const [gameState, setGameState] = useState<GameState>('MENU');
   const [score, setScore] = useState<GameScore>({
     score: 0,
@@ -32,10 +27,10 @@ function App() {
   const [lastHitResult, setLastHitResult] = useState<'correct' | 'wrong' | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 400, height: 600 });
 
-  // Player state
-  const [playerId] = useState(() => getOrCreatePlayerId());
+  // Auth state
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<PlayerProfile | null>(null);
-  const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   const gameLoopRef = useRef<number | null>(null);
@@ -44,73 +39,72 @@ function App() {
   const touchControlsActive = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-  // Load player profile on mount
+  // Check for existing session on mount
   useEffect(() => {
-    const loadPlayer = async () => {
-      setIsLoadingPlayer(true);
-      try {
-        const storedNickname = getStoredNickname();
-        if (storedNickname) {
-          const profile = await getPlayerProfile(playerId);
+    const checkSession = async () => {
+      setIsLoadingAuth(true);
+      const session = getSession();
+
+      if (session) {
+        // Validate session against Firestore
+        const isValid = await validateSession(session);
+        if (isValid) {
+          setAuthUser(session);
+          const profile = await getPlayerProfile(session.playerId);
           if (profile) {
             setCurrentPlayer(profile);
-            setAppScreen('MENU');
           }
+          setAppScreen('MENU');
+        } else {
+          // Invalid session, clear it
+          signOut();
         }
-      } catch (error) {
-        console.error('Failed to load player profile:', error);
-      } finally {
-        setIsLoadingPlayer(false);
       }
-    };
-    loadPlayer();
-  }, [playerId]);
 
-  // Handle player ready (nickname submitted)
-  const handlePlayerReady = async (nickname: string) => {
-    setIsLoadingPlayer(true);
-    try {
-      await savePlayerProfile(playerId, nickname);
-      const profile = await getPlayerProfile(playerId);
+      setIsLoadingAuth(false);
+    };
+
+    checkSession();
+  }, []);
+
+  // Handle successful authentication
+  const handleAuthSuccess = async (user: AuthUser) => {
+    setAuthUser(user);
+    const profile = await getPlayerProfile(user.playerId);
+    if (profile) {
       setCurrentPlayer(profile);
-      setAppScreen('MENU');
-    } catch (error) {
-      console.error('Failed to save player profile:', error);
-      // Still allow playing, just won't save to cloud
-      setCurrentPlayer({
-        id: playerId,
-        nickname,
-        highScore: 0,
-        bestLevel: 1,
-        gamesPlayed: 0,
-        totalCorrectAnswers: 0,
-        lastPlayed: new Date()
-      });
-      setAppScreen('MENU');
-    } finally {
-      setIsLoadingPlayer(false);
     }
+    setAppScreen('MENU');
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    signOut();
+    setAuthUser(null);
+    setCurrentPlayer(null);
+    setGameState('MENU');
+    setAppScreen('AUTH');
   };
 
   // Save stats when game ends
   const saveGameStats = useCallback(async (finalScore: GameScore) => {
-    if (!currentPlayer) return;
+    if (!authUser) return;
     try {
       await updatePlayerStats(
-        playerId,
+        authUser.playerId,
         finalScore.score,
         finalScore.level,
         finalScore.score // correctAnswers = score in this game
       );
       // Refresh player profile
-      const updatedProfile = await getPlayerProfile(playerId);
+      const updatedProfile = await getPlayerProfile(authUser.playerId);
       if (updatedProfile) {
         setCurrentPlayer(updatedProfile);
       }
     } catch (error) {
       console.error('Failed to save game stats:', error);
     }
-  }, [playerId, currentPlayer]);
+  }, [authUser]);
 
   // Detect touch device
   useEffect(() => {
@@ -591,16 +585,25 @@ function App() {
     fireProjectile();
   };
 
-  // Render Player Select Screen
-  if (appScreen === 'PLAYER_SELECT') {
+  // Show loading screen while checking auth
+  if (isLoadingAuth) {
     return (
       <div className="app-container">
         <div className="stars-bg"></div>
-        <PlayerSelect
-          onPlayerReady={handlePlayerReady}
-          currentPlayer={currentPlayer}
-          isLoading={isLoadingPlayer}
-        />
+        <div className="loading-screen">
+          <span className="loading-spinner">🚀</span>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Auth Screen
+  if (appScreen === 'AUTH') {
+    return (
+      <div className="app-container">
+        <div className="stars-bg"></div>
+        <AuthScreen onAuthSuccess={handleAuthSuccess} />
       </div>
     );
   }
@@ -619,13 +622,13 @@ function App() {
         <div className="menu-screen">
           <div className="stars-bg"></div>
 
-          {/* Player info bar */}
-          {currentPlayer && (
+          {/* Player info bar with logout */}
+          {authUser && (
             <div className="player-bar">
-              <span className="player-name">👨‍🚀 {currentPlayer.nickname}</span>
-              <span className="player-high-score">🏆 {currentPlayer.highScore}</span>
-              <button className="change-player-btn" onClick={() => setAppScreen('PLAYER_SELECT')}>
-                ✏️
+              <span className="player-name">👨‍🚀 {authUser.nickname}</span>
+              <span className="player-high-score">🏆 {currentPlayer?.highScore || 0}</span>
+              <button className="logout-btn" onClick={handleLogout} title="Logout">
+                🚪
               </button>
             </div>
           )}

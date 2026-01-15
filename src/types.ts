@@ -32,14 +32,23 @@ export interface GameScore {
   correctInLevel: number;
 }
 
+// Authentication Types
+export interface AuthUser {
+  playerId: string;
+  username: string;
+  nickname: string;
+}
+
 // Player and Leaderboard Types
 export interface PlayerProfile {
   id: string;
+  username: string;
   nickname: string;
   highScore: number;
   bestLevel: number;
   gamesPlayed: number;
   totalCorrectAnswers: number;
+  createdAt: Date;
   lastPlayed: Date;
 }
 

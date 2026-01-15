@@ -18,58 +18,7 @@ import type { PlayerProfile, LeaderboardEntry } from './types';
 const PLAYERS_COLLECTION = 'players';
 const LEADERBOARD_COLLECTION = 'leaderboard';
 
-// Generate a unique player ID (stored in localStorage)
-export function getOrCreatePlayerId(): string {
-  const storageKey = 'mathInvaders_playerId';
-  let playerId = localStorage.getItem(storageKey);
-
-  if (!playerId) {
-    playerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem(storageKey, playerId);
-  }
-
-  return playerId;
-}
-
-// Get stored nickname from localStorage
-export function getStoredNickname(): string | null {
-  return localStorage.getItem('mathInvaders_nickname');
-}
-
-// Store nickname in localStorage
-export function storeNickname(nickname: string): void {
-  localStorage.setItem('mathInvaders_nickname', nickname);
-}
-
-// Create or update player profile
-export async function savePlayerProfile(playerId: string, nickname: string): Promise<void> {
-  const playerRef = doc(db, PLAYERS_COLLECTION, playerId);
-  const playerDoc = await getDoc(playerRef);
-
-  if (playerDoc.exists()) {
-    // Update existing player
-    await updateDoc(playerRef, {
-      nickname,
-      lastPlayed: serverTimestamp()
-    });
-  } else {
-    // Create new player
-    const newPlayer: Omit<PlayerProfile, 'lastPlayed'> & { lastPlayed: ReturnType<typeof serverTimestamp> } = {
-      id: playerId,
-      nickname,
-      highScore: 0,
-      bestLevel: 1,
-      gamesPlayed: 0,
-      totalCorrectAnswers: 0,
-      lastPlayed: serverTimestamp()
-    };
-    await setDoc(playerRef, newPlayer);
-  }
-
-  storeNickname(nickname);
-}
-
-// Get player profile
+// Get player profile by ID
 export async function getPlayerProfile(playerId: string): Promise<PlayerProfile | null> {
   const playerRef = doc(db, PLAYERS_COLLECTION, playerId);
   const playerDoc = await getDoc(playerRef);
@@ -77,7 +26,14 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerProfile 
   if (playerDoc.exists()) {
     const data = playerDoc.data();
     return {
-      ...data,
+      id: data.id,
+      username: data.username,
+      nickname: data.nickname,
+      highScore: data.highScore,
+      bestLevel: data.bestLevel,
+      gamesPlayed: data.gamesPlayed,
+      totalCorrectAnswers: data.totalCorrectAnswers,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
       lastPlayed: data.lastPlayed instanceof Timestamp ? data.lastPlayed.toDate() : new Date()
     } as PlayerProfile;
   }
@@ -96,7 +52,7 @@ export async function updatePlayerStats(
   const playerDoc = await getDoc(playerRef);
 
   if (playerDoc.exists()) {
-    const currentData = playerDoc.data() as PlayerProfile;
+    const currentData = playerDoc.data();
     const isNewHighScore = score > currentData.highScore;
 
     await updateDoc(playerRef, {
@@ -152,20 +108,4 @@ export async function getLeaderboard(topN: number = 10): Promise<LeaderboardEntr
   });
 
   return entries;
-}
-
-// Check if nickname is available (optional - for unique nicknames)
-export async function isNicknameAvailable(nickname: string, currentPlayerId: string): Promise<boolean> {
-  const leaderboardRef = collection(db, LEADERBOARD_COLLECTION);
-  const querySnapshot = await getDocs(leaderboardRef);
-
-  let isAvailable = true;
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    if (data.nickname.toLowerCase() === nickname.toLowerCase() && data.playerId !== currentPlayerId) {
-      isAvailable = false;
-    }
-  });
-
-  return isAvailable;
 }
