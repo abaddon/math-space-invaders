@@ -1,0 +1,319 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0a0a1a;
+  color: #ffffff;
+  font-family: 'Arial', sans-serif;
+  overflow: hidden;
+}
+
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+/* Stars background */
+.stars-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 40%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(2px 2px at 50% 10%, rgba(255,255,255,0.9) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 30%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 50%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(2px 2px at 20% 60%, rgba(255,255,255,0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(2px 2px at 80% 90%, rgba(255,255,255,0.9) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 85%, rgba(255,255,255,0.7) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Menu Screen */
+.menu-screen {
+  text-align: center;
+  padding: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.title-math {
+  font-size: 42px;
+  font-weight: bold;
+  color: #00ff88;
+  text-shadow: 0 0 20px #00ff88;
+  letter-spacing: 8px;
+}
+
+.title-space {
+  font-size: 52px;
+  font-weight: bold;
+  color: #00d4ff;
+  text-shadow: 0 0 25px #00d4ff;
+  letter-spacing: 10px;
+  margin: -5px 0;
+}
+
+.title-invaders {
+  font-size: 36px;
+  font-weight: bold;
+  color: #b44aff;
+  text-shadow: 0 0 20px #b44aff;
+  letter-spacing: 6px;
+}
+
+.subtitle {
+  color: #a0a0a0;
+  font-size: 16px;
+  margin-bottom: 30px;
+}
+
+.rocket-icon {
+  font-size: 60px;
+  margin-bottom: 30px;
+  transform: rotate(-45deg);
+  animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: rotate(-45deg) translateY(0); }
+  50% { transform: rotate(-45deg) translateY(-10px); }
+}
+
+.start-button {
+  background: #00ff88;
+  color: #0a0a1a;
+  border: none;
+  padding: 16px 50px;
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 30px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+  transition: all 0.3s ease;
+}
+
+.start-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(0, 255, 136, 0.8);
+}
+
+.instructions {
+  margin-top: 40px;
+  padding: 20px 30px;
+  background: rgba(42, 42, 74, 0.5);
+  border-radius: 12px;
+  border: 1px solid #4a4a7a;
+}
+
+.instructions h3 {
+  color: #ffffff;
+  font-size: 14px;
+  letter-spacing: 2px;
+  margin-bottom: 15px;
+}
+
+.instructions p {
+  color: #a0a0a0;
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+/* Game Container */
+.game-container {
+  position: relative;
+}
+
+canvas {
+  border-radius: 10px;
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+  cursor: crosshair;
+}
+
+.pause-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.pause-btn:hover {
+  opacity: 1;
+}
+
+.pause-buttons {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  z-index: 10;
+}
+
+.pause-buttons button {
+  background: rgba(42, 42, 74, 0.9);
+  color: #00d4ff;
+  border: 2px solid #00d4ff;
+  padding: 12px 30px;
+  font-size: 16px;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pause-buttons button:hover {
+  background: #00d4ff;
+  color: #0a0a1a;
+}
+
+/* Game Over Screen */
+.game-over-screen {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  padding: 20px;
+}
+
+.game-over-title {
+  font-size: 42px;
+  font-weight: bold;
+  color: #ff4757;
+  text-shadow: 0 0 25px #ff4757;
+  letter-spacing: 6px;
+  margin-bottom: 30px;
+}
+
+.final-score-card {
+  background: rgba(42, 42, 74, 0.8);
+  border-radius: 20px;
+  padding: 30px 50px;
+  border: 2px solid #b44aff;
+  box-shadow: 0 0 20px rgba(180, 74, 255, 0.4);
+  margin-bottom: 25px;
+}
+
+.score-label {
+  color: #a0a0a0;
+  font-size: 14px;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.score-value {
+  font-size: 64px;
+  font-weight: bold;
+  color: #00ff88;
+  text-shadow: 0 0 20px #00ff88;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #4a4a7a;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-icon {
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  color: #a0a0a0;
+  font-size: 12px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.message {
+  color: #ffffff;
+  font-size: 16px;
+  margin-bottom: 30px;
+}
+
+.play-again-button {
+  background: #00ff88;
+  color: #0a0a1a;
+  border: none;
+  padding: 16px 40px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+  transition: all 0.3s ease;
+  margin-bottom: 15px;
+  display: block;
+  width: 250px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.play-again-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(0, 255, 136, 0.8);
+}
+
+.menu-button {
+  background: transparent;
+  color: #00d4ff;
+  border: none;
+  padding: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.menu-button:hover {
+  color: #ffffff;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .title-math { font-size: 32px; }
+  .title-space { font-size: 40px; }
+  .title-invaders { font-size: 26px; }
+  .start-button { padding: 14px 40px; font-size: 18px; }
+  .instructions { padding: 15px 20px; }
+  .game-over-title { font-size: 32px; }
+  .score-value { font-size: 48px; }
+}
