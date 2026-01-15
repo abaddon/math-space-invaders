@@ -1,11 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { GameState, GameScore, MathProblem, AnswerBlock, Projectile } from './types';
+import type { GameState, GameScore, MathProblem, AnswerBlock, Projectile, PlayerProfile } from './types';
 import { GAME_CONFIG, COLORS } from './constants';
 import { generateMathProblem, generateAnswerBlocks } from './mathGenerator';
+import { PlayerSelect } from './components/PlayerSelect';
+import { Leaderboard } from './components/Leaderboard';
+import {
+  getOrCreatePlayerId,
+  getStoredNickname,
+  savePlayerProfile,
+  getPlayerProfile,
+  updatePlayerStats
+} from './leaderboardService';
 import './App.css';
+
+type AppScreen = 'PLAYER_SELECT' | 'MENU' | 'GAME';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [appScreen, setAppScreen] = useState<AppScreen>('PLAYER_SELECT');
   const [gameState, setGameState] = useState<GameState>('MENU');
   const [score, setScore] = useState<GameScore>({
     score: 0,
@@ -20,11 +32,85 @@ function App() {
   const [lastHitResult, setLastHitResult] = useState<'correct' | 'wrong' | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 400, height: 600 });
 
+  // Player state
+  const [playerId] = useState(() => getOrCreatePlayerId());
+  const [currentPlayer, setCurrentPlayer] = useState<PlayerProfile | null>(null);
+  const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
   const gameLoopRef = useRef<number | null>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   const isProcessingWrongAnswer = useRef(false);
   const touchControlsActive = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  // Load player profile on mount
+  useEffect(() => {
+    const loadPlayer = async () => {
+      setIsLoadingPlayer(true);
+      try {
+        const storedNickname = getStoredNickname();
+        if (storedNickname) {
+          const profile = await getPlayerProfile(playerId);
+          if (profile) {
+            setCurrentPlayer(profile);
+            setAppScreen('MENU');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load player profile:', error);
+      } finally {
+        setIsLoadingPlayer(false);
+      }
+    };
+    loadPlayer();
+  }, [playerId]);
+
+  // Handle player ready (nickname submitted)
+  const handlePlayerReady = async (nickname: string) => {
+    setIsLoadingPlayer(true);
+    try {
+      await savePlayerProfile(playerId, nickname);
+      const profile = await getPlayerProfile(playerId);
+      setCurrentPlayer(profile);
+      setAppScreen('MENU');
+    } catch (error) {
+      console.error('Failed to save player profile:', error);
+      // Still allow playing, just won't save to cloud
+      setCurrentPlayer({
+        id: playerId,
+        nickname,
+        highScore: 0,
+        bestLevel: 1,
+        gamesPlayed: 0,
+        totalCorrectAnswers: 0,
+        lastPlayed: new Date()
+      });
+      setAppScreen('MENU');
+    } finally {
+      setIsLoadingPlayer(false);
+    }
+  };
+
+  // Save stats when game ends
+  const saveGameStats = useCallback(async (finalScore: GameScore) => {
+    if (!currentPlayer) return;
+    try {
+      await updatePlayerStats(
+        playerId,
+        finalScore.score,
+        finalScore.level,
+        finalScore.score // correctAnswers = score in this game
+      );
+      // Refresh player profile
+      const updatedProfile = await getPlayerProfile(playerId);
+      if (updatedProfile) {
+        setCurrentPlayer(updatedProfile);
+      }
+    } catch (error) {
+      console.error('Failed to save game stats:', error);
+    }
+  }, [playerId, currentPlayer]);
 
   // Detect touch device
   useEffect(() => {
@@ -117,7 +203,10 @@ function App() {
       const newLives = prev.lives - 1;
       if (newLives <= 0) {
         setGameState('GAME_OVER');
-        return { ...prev, lives: 0 };
+        // Save stats when game over
+        const finalScore = { ...prev, lives: 0 };
+        saveGameStats(finalScore);
+        return finalScore;
       }
       return { ...prev, lives: newLives };
     });
@@ -126,7 +215,7 @@ function App() {
     setTimeout(() => {
       isProcessingWrongAnswer.current = false;
     }, 100);
-  }, []);
+  }, [saveGameStats]);
 
   // Start game
   const startGame = useCallback(() => {
@@ -502,11 +591,45 @@ function App() {
     fireProjectile();
   };
 
+  // Render Player Select Screen
+  if (appScreen === 'PLAYER_SELECT') {
+    return (
+      <div className="app-container">
+        <div className="stars-bg"></div>
+        <PlayerSelect
+          onPlayerReady={handlePlayerReady}
+          currentPlayer={currentPlayer}
+          isLoading={isLoadingPlayer}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
+      {/* Leaderboard Modal */}
+      {showLeaderboard && (
+        <Leaderboard
+          currentPlayer={currentPlayer}
+          onClose={() => setShowLeaderboard(false)}
+        />
+      )}
+
       {gameState === 'MENU' && (
         <div className="menu-screen">
           <div className="stars-bg"></div>
+
+          {/* Player info bar */}
+          {currentPlayer && (
+            <div className="player-bar">
+              <span className="player-name">👨‍🚀 {currentPlayer.nickname}</span>
+              <span className="player-high-score">🏆 {currentPlayer.highScore}</span>
+              <button className="change-player-btn" onClick={() => setAppScreen('PLAYER_SELECT')}>
+                ✏️
+              </button>
+            </div>
+          )}
+
           <h1 className="title">
             <span className="title-math">MATH</span>
             <span className="title-space">SPACE</span>
@@ -516,6 +639,9 @@ function App() {
           <div className="rocket-icon">🚀</div>
           <button className="start-button" onClick={startGame}>
             ▶ START GAME
+          </button>
+          <button className="leaderboard-btn" onClick={() => setShowLeaderboard(true)}>
+            🏆 LEADERBOARD
           </button>
           <div className="instructions">
             <h3>HOW TO PLAY</h3>
@@ -533,6 +659,9 @@ function App() {
           <div className="final-score-card">
             <p className="score-label">FINAL SCORE</p>
             <p className="score-value">{score.score}</p>
+            {currentPlayer && score.score > 0 && score.score >= currentPlayer.highScore && (
+              <p className="new-high-score">🎉 NEW HIGH SCORE!</p>
+            )}
             <div className="stats-row">
               <div className="stat">
                 <span className="stat-icon">🏆</span>
@@ -554,6 +683,9 @@ function App() {
           </p>
           <button className="play-again-button" onClick={startGame}>
             🔄 PLAY AGAIN
+          </button>
+          <button className="leaderboard-btn secondary" onClick={() => setShowLeaderboard(true)}>
+            🏆 LEADERBOARD
           </button>
           <button className="menu-button" onClick={() => setGameState('MENU')}>
             🏠 MAIN MENU

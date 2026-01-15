@@ -31,3 +31,22 @@ export interface GameScore {
   lives: number;
   correctInLevel: number;
 }
+
+// Player and Leaderboard Types
+export interface PlayerProfile {
+  id: string;
+  nickname: string;
+  highScore: number;
+  bestLevel: number;
+  gamesPlayed: number;
+  totalCorrectAnswers: number;
+  lastPlayed: Date;
+}
+
+export interface LeaderboardEntry {
+  playerId: string;
+  nickname: string;
+  score: number;
+  level: number;
+  achievedAt: Date;
+}
