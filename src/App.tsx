@@ -163,11 +163,20 @@ function App() {
   useEffect(() => {
     const updateSize = () => {
       // User bar is 50px on desktop, 45px on mobile (below 500px)
-      const userBarHeight = authUser ? (window.innerWidth <= 500 ? 45 : 50) : 0;
-      const width = Math.min(500, window.innerWidth - 40);
-      // Subtract user bar height and extra padding from available height
-      const availableHeight = window.innerHeight - userBarHeight - 20;
-      const height = Math.min(700, availableHeight);
+      const isMobile = window.innerWidth <= 500;
+      const userBarHeight = authUser ? (isMobile ? 45 : 50) : 0;
+
+      // On mobile, use full screen width; on desktop, cap at 500px with some padding
+      const width = isMobile
+        ? window.innerWidth
+        : Math.min(500, window.innerWidth - 40);
+
+      // On mobile, use full available height; on desktop, cap at 700px
+      const availableHeight = window.innerHeight - userBarHeight;
+      const height = isMobile
+        ? availableHeight
+        : Math.min(700, availableHeight - 20);
+
       setCanvasSize({ width, height });
       setStarshipX(width / 2);
     };

@@ -51,6 +51,14 @@ body {
   touch-action: manipulation;
 }
 
+/* On mobile, align content to top-left for full-screen game */
+@media (max-width: 500px) {
+  .app-container {
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+}
+
 /* Stars background */
 .stars-bg {
   position: absolute;
@@ -434,13 +442,24 @@ canvas {
   .game-over-title { font-size: 32px; }
   .score-value { font-size: 48px; }
 
-  /* Adjust game container margin for smaller user bar on mobile */
+  /* On mobile, game container fills the screen below user bar */
   .game-container {
     margin-top: 45px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
 
   .app-container:not(:has(.user-top-bar)) .game-container {
     margin-top: 0;
+  }
+
+  /* Remove rounded corners and shadow on mobile for full-screen look */
+  canvas {
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .fire-btn {
