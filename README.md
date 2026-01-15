@@ -130,6 +130,32 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 ```
 
+### Google Analytics Setup (Optional)
+
+To enable user behavior tracking with Google Analytics 4:
+
+1. Create a Google Analytics 4 property at [Google Analytics](https://analytics.google.com)
+2. Get your Measurement ID (format: `G-XXXXXXXXXX`)
+3. Update `index.html` - replace `GA_MEASUREMENT_ID` with your actual ID:
+   ```html
+   <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+   ```
+4. Create a `.env` file in the project root:
+   ```
+   VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+   ```
+
+#### Tracked Events
+
+| Category | Events |
+|----------|--------|
+| **Authentication** | `sign_up`, `login`, `logout`, `auth_error`, `auth_tab_switch`, `session_restored` |
+| **Game Flow** | `game_start`, `game_pause`, `game_resume`, `game_over` |
+| **Gameplay** | `answer_correct`, `answer_wrong`, `answer_missed`, `level_up`, `tier_up` |
+| **Leaderboard** | `leaderboard_open`, `leaderboard_close`, `leaderboard_retry`, `high_score_achieved` |
+| **Navigation** | `screen_view`, `page_view` |
+| **Device** | `device_detected` |
+
 ### Build for Production
 
 ```bash
@@ -147,6 +173,7 @@ src/
 ├── types.ts                   # TypeScript interfaces
 ├── constants.ts               # Game configuration constants
 ├── mathGenerator.ts           # Main API (backward compatible)
+├── analytics.ts               # Google Analytics 4 tracking service
 ├── firebase.ts                # Firebase configuration
 ├── authService.ts             # User authentication logic
 ├── leaderboardService.ts      # Leaderboard operations

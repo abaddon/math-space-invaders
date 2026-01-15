@@ -2,6 +2,12 @@
 import { useState } from 'react';
 import { signIn, signUp } from '../authService';
 import type { AuthUser } from '../types';
+import {
+  trackSignUp,
+  trackLogin,
+  trackAuthError,
+  trackAuthTabSwitch
+} from '../analytics';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -24,10 +30,12 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     // Basic validation
     if (!username.trim()) {
       setError('Please enter a username');
+      trackAuthError('empty_username', mode);
       return;
     }
     if (!password) {
       setError('Please enter a password');
+      trackAuthError('empty_password', mode);
       return;
     }
 
@@ -35,22 +43,27 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     if (mode === 'signup') {
       if (username.trim().length < 3) {
         setError('Username must be at least 3 characters');
+        trackAuthError('username_too_short', mode);
         return;
       }
       if (username.trim().length > 15) {
         setError('Username must be 15 characters or less');
+        trackAuthError('username_too_long', mode);
         return;
       }
       if (!/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
         setError('Username can only contain letters, numbers, _ and -');
+        trackAuthError('invalid_username_chars', mode);
         return;
       }
       if (password.length < 4) {
         setError('Password must be at least 4 characters');
+        trackAuthError('password_too_short', mode);
         return;
       }
       if (password !== confirmPassword) {
         setError('Passwords do not match');
+        trackAuthError('password_mismatch', mode);
         return;
       }
     }
@@ -61,20 +74,25 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       if (mode === 'signin') {
         const result = await signIn(username.trim(), password);
         if (result.success && result.user) {
+          trackLogin();
           onAuthSuccess(result.user);
         } else {
           setError(result.error || 'Sign in failed');
+          trackAuthError(result.error || 'signin_failed', mode);
         }
       } else {
         const result = await signUp(username.trim(), password);
         if (result.success && result.user) {
+          trackSignUp();
           onAuthSuccess(result.user);
         } else {
           setError(result.error || 'Sign up failed');
+          trackAuthError(result.error || 'signup_failed', mode);
         }
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
+      trackAuthError('unexpected_error', mode);
     } finally {
       setIsLoading(false);
     }
@@ -85,6 +103,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     setError('');
     setPassword('');
     setConfirmPassword('');
+    trackAuthTabSwitch(newMode);
   };
 
   return (

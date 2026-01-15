@@ -6,7 +6,25 @@ import { AuthScreen } from './components/AuthScreen';
 import { Leaderboard } from './components/Leaderboard';
 import { getSession, validateSession, signOut } from './authService';
 import { getPlayerProfile, updatePlayerStats } from './leaderboardService';
-import { getTierDescription, isNewTier } from './utils/levelUtils';
+import { getTierDescription, isNewTier, getTierNumber } from './utils/levelUtils';
+import {
+  initAnalytics,
+  trackSessionRestored,
+  trackLogout,
+  trackGameStart,
+  trackGamePause,
+  trackGameResume,
+  trackGameOver,
+  trackAnswerCorrect,
+  trackAnswerWrong,
+  trackAnswerMissed,
+  trackLevelUp,
+  trackTierUp,
+  trackLeaderboardOpen,
+  trackDeviceDetected,
+  trackScreenView,
+  trackHighScoreAchieved
+} from './analytics';
 import './App.css';
 
 type AppScreen = 'AUTH' | 'MENU' | 'GAME';
@@ -43,6 +61,11 @@ function App() {
   const touchControlsActive = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
+  // Initialize analytics on mount
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
@@ -59,10 +82,15 @@ function App() {
             setCurrentPlayer(profile);
           }
           setAppScreen('MENU');
+          trackSessionRestored();
+          trackScreenView('menu');
         } else {
           // Invalid session, clear it
           signOut();
+          trackScreenView('auth');
         }
+      } else {
+        trackScreenView('auth');
       }
 
       setIsLoadingAuth(false);
@@ -79,15 +107,18 @@ function App() {
       setCurrentPlayer(profile);
     }
     setAppScreen('MENU');
+    trackScreenView('menu');
   };
 
   // Handle logout
   const handleLogout = () => {
+    trackLogout();
     signOut();
     setAuthUser(null);
     setCurrentPlayer(null);
     setGameState('MENU');
     setAppScreen('AUTH');
+    trackScreenView('auth');
   };
 
   // Save stats when game ends
@@ -110,16 +141,24 @@ function App() {
     }
   }, [authUser]);
 
-  // Detect touch device
+  // Detect touch device and track device info
   useEffect(() => {
     const checkTouchDevice = () => {
-      setIsTouchDevice(
-        'ontouchstart' in window ||
+      const isTouch = 'ontouchstart' in window ||
         navigator.maxTouchPoints > 0 ||
-        window.matchMedia('(pointer: coarse)').matches
-      );
+        window.matchMedia('(pointer: coarse)').matches;
+      setIsTouchDevice(isTouch);
+      return isTouch;
     };
-    checkTouchDevice();
+    const isTouch = checkTouchDevice();
+
+    // Track device info once on mount
+    trackDeviceDetected(
+      isTouch ? 'touch' : 'desktop',
+      window.innerWidth,
+      window.innerHeight
+    );
+
     window.addEventListener('resize', checkTouchDevice);
     return () => window.removeEventListener('resize', checkTouchDevice);
   }, []);
@@ -219,19 +258,36 @@ function App() {
     setLastHitResult('correct');
     setTimeout(() => setLastHitResult(null), 300);
 
+    // Track correct answer
+    if (currentProblem) {
+      trackAnswerCorrect(score.level, currentProblem.operation, score.score + 1);
+    }
+
     setScore((prev) => {
       const newCorrectInLevel = prev.correctInLevel + 1;
       const newScore = prev.score + 1;
 
       if (newCorrectInLevel >= GAME_CONFIG.CORRECT_ANSWERS_PER_LEVEL) {
+        const newLevel = prev.level + 1;
+        const newTier = getTierNumber(newLevel);
+        const oldTier = getTierNumber(prev.level);
+
         setGameState('LEVEL_UP');
         setTimeout(() => {
           setGameState('PLAYING');
         }, GAME_CONFIG.LEVEL_UP_DELAY);
 
+        // Track level up
+        trackLevelUp(newLevel, newTier, newScore);
+
+        // Track tier up if entering a new tier
+        if (newTier > oldTier) {
+          trackTierUp(newTier, getTierDescription(newLevel));
+        }
+
         return {
           score: newScore,
-          level: prev.level + 1,
+          level: newLevel,
           lives: prev.lives,
           correctInLevel: 0,
         };
@@ -239,10 +295,10 @@ function App() {
 
       return { ...prev, score: newScore, correctInLevel: newCorrectInLevel };
     });
-  }, []);
+  }, [currentProblem, score.level, score.score]);
 
   // Handle wrong answer
-  const handleWrongAnswer = useCallback(() => {
+  const handleWrongAnswer = useCallback((missed: boolean = false) => {
     // Prevent double-calling during the same frame
     if (isProcessingWrongAnswer.current) return;
     isProcessingWrongAnswer.current = true;
@@ -252,11 +308,30 @@ function App() {
 
     setScore((prev) => {
       const newLives = prev.lives - 1;
+
+      // Track wrong answer or missed answer
+      if (currentProblem) {
+        if (missed) {
+          trackAnswerMissed(prev.level, currentProblem.operation, newLives);
+        } else {
+          trackAnswerWrong(prev.level, currentProblem.operation, newLives);
+        }
+      }
+
       if (newLives <= 0) {
         setGameState('GAME_OVER');
         // Save stats when game over
         const finalScore = { ...prev, lives: 0 };
         saveGameStats(finalScore);
+
+        // Track game over
+        trackGameOver(finalScore.score, finalScore.level, finalScore.score);
+
+        // Check for high score
+        if (currentPlayer && finalScore.score > currentPlayer.highScore) {
+          trackHighScoreAchieved(finalScore.score, currentPlayer.highScore);
+        }
+
         return finalScore;
       }
       return { ...prev, lives: newLives };
@@ -266,7 +341,7 @@ function App() {
     setTimeout(() => {
       isProcessingWrongAnswer.current = false;
     }, 100);
-  }, [saveGameStats]);
+  }, [saveGameStats, currentProblem, currentPlayer]);
 
   // Start game
   const startGame = useCallback(() => {
@@ -278,7 +353,11 @@ function App() {
     });
     setGameState('PLAYING');
     setStarshipX(canvasSize.width / 2);
-  }, [canvasSize.width]);
+
+    // Track game start
+    trackGameStart(authUser?.playerId);
+    trackScreenView('game');
+  }, [canvasSize.width, authUser?.playerId]);
 
   // Fire projectile
   const fireProjectile = useCallback(() => {
@@ -299,8 +378,13 @@ function App() {
         fireProjectile();
       }
       if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
-        if (gameState === 'PLAYING') setGameState('PAUSED');
-        else if (gameState === 'PAUSED') setGameState('PLAYING');
+        if (gameState === 'PLAYING') {
+          setGameState('PAUSED');
+          trackGamePause(score.level, score.score);
+        } else if (gameState === 'PAUSED') {
+          setGameState('PLAYING');
+          trackGameResume(score.level, score.score);
+        }
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -313,7 +397,7 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [fireProjectile, gameState]);
+  }, [fireProjectile, gameState, score.level, score.score]);
 
   // Generate round when game starts or after hit
   useEffect(() => {
@@ -349,7 +433,7 @@ function App() {
         const reachedBottom = updated.some((b) => b.y >= bottomLimit);
 
         if (reachedBottom) {
-          handleWrongAnswer();
+          handleWrongAnswer(true); // true = missed (reached bottom)
           return [];
         }
         return updated;
@@ -713,7 +797,10 @@ function App() {
           </span>
           <div className="user-stats">
             <span className="user-score">🏆 {currentPlayer?.highScore || 0}</span>
-            <button className="leaderboard-bar-btn" onClick={() => setShowLeaderboard(true)} title="Leaderboard">
+            <button className="leaderboard-bar-btn" onClick={() => {
+              setShowLeaderboard(true);
+              trackLeaderboardOpen('user_bar');
+            }} title="Leaderboard">
               🏆 Leaderboard
             </button>
           </div>
@@ -803,13 +890,22 @@ function App() {
             onClick={handleCanvasClick}
           />
           {gameState === 'PLAYING' && (
-            <button className="pause-btn" onClick={() => setGameState('PAUSED')}>⏸</button>
+            <button className="pause-btn" onClick={() => {
+              setGameState('PAUSED');
+              trackGamePause(score.level, score.score);
+            }}>⏸</button>
           )}
           {gameState === 'PAUSED' && (
             <div className="pause-buttons">
-              <button onClick={() => setGameState('PLAYING')}>▶ Resume</button>
+              <button onClick={() => {
+                setGameState('PLAYING');
+                trackGameResume(score.level, score.score);
+              }}>▶ Resume</button>
               <button onClick={startGame}>🔄 Restart</button>
-              <button onClick={() => setGameState('MENU')}>🏠 Menu</button>
+              <button onClick={() => {
+                setGameState('MENU');
+                trackScreenView('menu');
+              }}>🏠 Menu</button>
             </div>
           )}
 

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import type { LeaderboardEntry, PlayerProfile } from '../types';
 import { getLeaderboard } from '../leaderboardService';
+import { trackLeaderboardClose, trackLeaderboardRetry } from '../analytics';
 
 interface LeaderboardProps {
   currentPlayer: PlayerProfile | null;
@@ -31,6 +32,16 @@ export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
     }
   };
 
+  const handleClose = () => {
+    trackLeaderboardClose();
+    onClose();
+  };
+
+  const handleRetry = () => {
+    trackLeaderboardRetry();
+    loadLeaderboard();
+  };
+
   const getMedalEmoji = (rank: number): string => {
     switch (rank) {
       case 1: return '🥇';
@@ -44,7 +55,7 @@ export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
   return (
     <div className="leaderboard-overlay">
       <div className="leaderboard-modal">
-        <button className="close-btn" onClick={onClose}>✕</button>
+        <button className="close-btn" onClick={handleClose}>✕</button>
 
         <h2 className="leaderboard-title">🏆 Global Leaderboard</h2>
 
@@ -56,7 +67,7 @@ export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
         ) : error ? (
           <div className="leaderboard-error">
             <p>{error}</p>
-            <button onClick={loadLeaderboard} className="retry-btn">
+            <button onClick={handleRetry} className="retry-btn">
               🔄 Retry
             </button>
           </div>
