@@ -551,10 +551,35 @@ canvas {
   font-size: 16px;
 }
 
+.user-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .user-score {
   color: #00ff88;
   font-weight: bold;
   font-size: 16px;
+}
+
+.leaderboard-bar-btn {
+  background: rgba(180, 74, 255, 0.2);
+  border: 1px solid #b44aff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.leaderboard-bar-btn:hover {
+  background: #b44aff;
+  box-shadow: 0 0 15px rgba(180, 74, 255, 0.5);
 }
 
 .logout-btn {
@@ -854,6 +879,12 @@ canvas {
   .logout-btn {
     padding: 5px 10px;
     font-size: 12px;
+  }
+
+  .leaderboard-bar-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
   }
 }
 

@@ -617,7 +617,12 @@ function App() {
             <span className="user-avatar">👨‍🚀</span>
             <span className="user-name">{authUser.nickname}</span>
           </span>
-          <span className="user-score">🏆 {currentPlayer?.highScore || 0}</span>
+          <div className="user-stats">
+            <span className="user-score">🏆 {currentPlayer?.highScore || 0}</span>
+            <button className="leaderboard-bar-btn" onClick={() => setShowLeaderboard(true)} title="Leaderboard">
+              📊
+            </button>
+          </div>
           <button className="logout-btn" onClick={handleLogout} title="Logout">
             🚪 Logout
           </button>
@@ -645,9 +650,6 @@ function App() {
           <div className="rocket-icon">🚀</div>
           <button className="start-button" onClick={startGame}>
             ▶ START GAME
-          </button>
-          <button className="leaderboard-btn" onClick={() => setShowLeaderboard(true)}>
-            🏆 LEADERBOARD
           </button>
           <div className="instructions">
             <h3>HOW TO PLAY</h3>
@@ -689,9 +691,6 @@ function App() {
           </p>
           <button className="play-again-button" onClick={startGame}>
             🔄 PLAY AGAIN
-          </button>
-          <button className="leaderboard-btn secondary" onClick={() => setShowLeaderboard(true)}>
-            🏆 LEADERBOARD
           </button>
           <button className="menu-button" onClick={() => setGameState('MENU')}>
             🏠 MAIN MENU
