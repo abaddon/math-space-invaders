@@ -124,18 +124,57 @@ function App() {
     return () => window.removeEventListener('resize', checkTouchDevice);
   }, []);
 
-  // Initialize canvas size
+  // Prevent all default touch behaviors (scrolling, bouncing, zooming)
+  useEffect(() => {
+    const preventDefaultTouch = (e: TouchEvent) => {
+      // Allow touch events on buttons and interactive elements
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'BUTTON' || target.tagName === 'INPUT' ||
+          target.closest('button') || target.closest('input') ||
+          target.closest('.leaderboard-modal')) {
+        return;
+      }
+      e.preventDefault();
+    };
+
+    const preventDefaultWheel = (e: WheelEvent) => {
+      // Only allow scrolling in modal
+      const target = e.target as HTMLElement;
+      if (!target.closest('.leaderboard-modal')) {
+        e.preventDefault();
+      }
+    };
+
+    // Prevent touchmove and wheel events on document
+    document.addEventListener('touchmove', preventDefaultTouch, { passive: false });
+    document.addEventListener('wheel', preventDefaultWheel, { passive: false });
+
+    // Prevent overscroll/bounce on iOS
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('touchmove', preventDefaultTouch);
+      document.removeEventListener('wheel', preventDefaultWheel);
+    };
+  }, []);
+
+  // Initialize canvas size - account for user bar when logged in
   useEffect(() => {
     const updateSize = () => {
+      // User bar is 50px on desktop, 45px on mobile (below 500px)
+      const userBarHeight = authUser ? (window.innerWidth <= 500 ? 45 : 50) : 0;
       const width = Math.min(500, window.innerWidth - 40);
-      const height = Math.min(700, window.innerHeight - 40);
+      // Subtract user bar height and extra padding from available height
+      const availableHeight = window.innerHeight - userBarHeight - 20;
+      const height = Math.min(700, availableHeight);
       setCanvasSize({ width, height });
       setStarshipX(width / 2);
     };
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
-  }, []);
+  }, [authUser]);
 
   // Update level config when level changes
   useEffect(() => {
