@@ -51,9 +51,9 @@ body {
   touch-action: manipulation;
 }
 
-/* On mobile, align content to top-left for full-screen game */
+/* On mobile with game container, align to top-left for full-screen game */
 @media (max-width: 500px) {
-  .app-container {
+  .app-container:has(.game-container) {
     justify-content: flex-start;
     align-items: flex-start;
   }
@@ -607,7 +607,15 @@ canvas {
   background: rgba(10, 10, 26, 0.95);
   border-bottom: 2px solid #4a4a7a;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  z-index: 500;
+  z-index: 1000;
+}
+
+/* On mobile, make user bar fully opaque and always visible */
+@media (max-width: 500px) {
+  .user-top-bar {
+    background: #0a0a1a;
+    height: 45px;
+  }
 }
 
 .user-info {
@@ -935,10 +943,9 @@ canvas {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* Responsive user top bar */
+  /* Responsive user top bar - already has height from earlier rule */
   .user-top-bar {
     padding: 0 10px;
-    height: 45px;
   }
 
   .user-avatar {
