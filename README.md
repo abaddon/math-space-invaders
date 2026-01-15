@@ -6,7 +6,7 @@ An educational game that helps kids learn math through engaging Space Invaders-s
 
 ## 🎮 Play Now!
 
-**[▶️ Play Math Space Invaders](https://abaddon83.github.io/math-space-invaders/)**
+**[▶️ Play Math Space Invaders](https://abaddon.github.io/math-space-invaders/)**
 
 ## 🎮 How to Play
 
@@ -46,7 +46,7 @@ Shoot the correct answer to the math problem shown at the bottom of the screen. 
 
 ```bash
 # Clone the repository
-git clone https://github.com/abaddon83/math-space-invaders.git
+git clone https://github.com/abaddon/math-space-invaders.git
 
 # Navigate to project directory
 cd math-space-invaders
