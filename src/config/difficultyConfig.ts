@@ -5,7 +5,7 @@ import type { OperationCategory, DigitType, TierDefinition } from '../types';
 
 export const DIFFICULTY_CONFIG = {
   // Time settings (in seconds)
-  BASE_TIME: 5,           // Starting time at beginning of each tier
+  BASE_TIME: 10,          // Starting time at beginning of each tier
   TIME_DECAY: 0.9,        // 10% reduction per level within tier
   MIN_TIME: 2,            // Minimum time allowed
   LEVELS_PER_TIER: 5,     // Number of levels in each tier
@@ -34,52 +34,143 @@ export const DIFFICULTY_CONFIG = {
     {
       tier: 3,
       levelRange: [11, 15] as [number, number],
-      operations: ['addition', 'subtraction', 'multiplication', 'division'] as OperationCategory[],
-      digitType: 'double' as DigitType,
+      operations: ['multiplication', 'division', 'fraction'] as OperationCategory[],
+      digitType: 'single' as DigitType,
       resetTime: true,
-      description: 'Basic operations with double digits'
+      description: 'Adding proper fractions'
     },
     {
       tier: 4,
       levelRange: [16, 20] as [number, number],
-      operations: ['addition', 'subtraction', 'multiplication', 'division', 'fraction'] as OperationCategory[],
+      operations: ['division', 'fraction', 'improperFraction'] as OperationCategory[],
+      digitType: 'single' as DigitType,
+      resetTime: true,
+      description: 'Adding improper fractions and mixed numbers'
+    },
+    {
+      tier: 5,
+      levelRange: [21, 25] as [number, number],
+      operations: ['fraction', 'improperFraction', 'percentage'] as OperationCategory[],
+      digitType: 'single' as DigitType,
+      resetTime: true,
+      description: 'Adding percentages'
+    },
+    {
+      tier: 6,
+      levelRange: [26, 30] as [number, number],
+      operations: ['improperFraction', 'percentage', 'metricConversion'] as OperationCategory[],
+      digitType: 'single' as DigitType,
+      resetTime: true,
+      description: 'Adding metric conversions'
+    },
+    {
+      tier: 7,
+      levelRange: [31, 35] as [number, number],
+      operations: ['addition', 'subtraction'] as OperationCategory[],
+      digitType: 'double' as DigitType,
+      resetTime: true,
+      description: 'Basic addition and subtraction with double digits'
+    },
+    {
+      tier: 8,
+      levelRange: [36, 40] as [number, number],
+      operations: ['addition', 'subtraction', 'multiplication', 'division'] as OperationCategory[],
+      digitType: 'double' as DigitType,
+      resetTime: true,
+      description: 'All basic operations with double digits'
+    },
+    {
+      tier: 9,
+      levelRange: [41, 45] as [number, number],
+      operations: ['multiplication', 'division', 'fraction'] as OperationCategory[],
       digitType: 'double' as DigitType,
       resetTime: true,
       description: 'Adding proper fractions'
     },
     {
-      tier: 5,
-      levelRange: [21, 25] as [number, number],
-      operations: ['addition', 'subtraction', 'multiplication', 'division', 'fraction', 'improperFraction'] as OperationCategory[],
+      tier: 10,
+      levelRange: [46, 50] as [number, number],
+      operations: ['division', 'fraction', 'improperFraction'] as OperationCategory[],
       digitType: 'double' as DigitType,
       resetTime: true,
       description: 'Adding improper fractions and mixed numbers'
     },
     {
-      tier: 6,
-      levelRange: [26, 30] as [number, number],
-      operations: ['addition', 'subtraction', 'multiplication', 'division', 'fraction', 'improperFraction', 'percentage'] as OperationCategory[],
+      tier: 11,
+      levelRange: [51, 55] as [number, number],
+      operations: ['fraction', 'improperFraction', 'percentage'] as OperationCategory[],
       digitType: 'double' as DigitType,
       resetTime: true,
       description: 'Adding percentages'
     },
     {
-      tier: 7,
-      levelRange: [31, 35] as [number, number],
-      operations: ['addition', 'subtraction', 'multiplication', 'division', 'fraction', 'improperFraction', 'percentage'] as OperationCategory[],
+      tier: 12,
+      levelRange: [56, 60] as [number, number],
+      operations: ['improperFraction', 'percentage', 'metricConversion'] as OperationCategory[],
+      digitType: 'double' as DigitType,
+      resetTime: true,
+      description: 'Adding metric conversions'
+    },
+    {
+      tier: 13,
+      levelRange: [61, 65] as [number, number],
+      operations: ['addition', 'subtraction'] as OperationCategory[],
       digitType: 'triple' as DigitType,
       resetTime: true,
-      description: 'All operations with triple digits'
+      description: 'Basic addition and subtraction with triple digits'
+    },
+    {
+      tier: 14,
+      levelRange: [66, 70] as [number, number],
+      operations: ['addition', 'subtraction', 'multiplication', 'division'] as OperationCategory[],
+      digitType: 'triple' as DigitType,
+      resetTime: true,
+      description: 'All basic operations with triple digits'
+    },
+    {
+      tier: 15,
+      levelRange: [71, 75] as [number, number],
+      operations: ['multiplication', 'division', 'fraction'] as OperationCategory[],
+      digitType: 'triple' as DigitType,
+      resetTime: true,
+      description: 'Adding proper fractions'
+    },
+    {
+      tier: 16,
+      levelRange: [76, 80] as [number, number],
+      operations: ['division', 'fraction', 'improperFraction'] as OperationCategory[],
+      digitType: 'triple' as DigitType,
+      resetTime: true,
+      description: 'Adding improper fractions and mixed numbers'
+    },
+    {
+      tier: 17,
+      levelRange: [81, 85] as [number, number],
+      operations: ['fraction', 'improperFraction', 'percentage'] as OperationCategory[],
+      digitType: 'triple' as DigitType,
+      resetTime: true,
+      description: 'Adding percentages'
+    },
+    {
+      tier: 18,
+      levelRange: [86, 90] as [number, number],
+      operations: ['improperFraction', 'percentage', 'metricConversion'] as OperationCategory[],
+      digitType: 'triple' as DigitType,
+      resetTime: true,
+      description: 'Adding metric conversions'
     },
     {
       tier: 8,
-      levelRange: [36, 40] as [number, number],
+      levelRange: [91, 200] as [number, number],
       operations: ['addition', 'subtraction', 'multiplication', 'division', 'fraction', 'improperFraction', 'percentage', 'metricConversion'] as OperationCategory[],
       digitType: 'triple' as DigitType,
       resetTime: true,
       description: 'Adding metric conversions'
     }
   ] as TierDefinition[],
+
+  //operations: ['addition', 'subtraction', 'multiplication', 'division', 'fraction', 'improperFraction', 'percentage', 'metricConversion'] as OperationCategory[],
+  // single   double   triple
 
   // Digit ranges for number generation
   DIGIT_RANGES: {
