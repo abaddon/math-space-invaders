@@ -80,6 +80,18 @@ body {
   pointer-events: none;
 }
 
+/* Screen transition animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Menu Screen */
 .menu-screen {
   text-align: center;
@@ -88,6 +100,7 @@ body {
   z-index: 1;
   overflow: hidden;
   touch-action: manipulation;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .title {
@@ -201,6 +214,23 @@ canvas {
   cursor: crosshair;
   touch-action: none;
   -webkit-touch-callout: none;
+  transition: filter 0.2s ease;
+}
+
+canvas.paused-blur {
+  filter: blur(4px);
+}
+
+.pause-blur-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 26, 0.6);
+  border-radius: 10px;
+  pointer-events: none;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .pause-btn {
@@ -246,6 +276,70 @@ canvas {
   color: #0a0a1a;
 }
 
+/* Quit Confirmation Dialog */
+.quit-confirm-dialog {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(10, 10, 26, 0.95);
+  border: 2px solid #ff4757;
+  border-radius: 15px;
+  padding: 25px 30px;
+  text-align: center;
+  z-index: 10;
+  min-width: 250px;
+}
+
+.quit-confirm-dialog h3 {
+  color: #ff4757;
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.quit-confirm-dialog p {
+  color: #a0a0a0;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.quit-confirm-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.quit-confirm-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid;
+}
+
+.quit-confirm-btn.cancel {
+  background: transparent;
+  color: #00d4ff;
+  border-color: #00d4ff;
+}
+
+.quit-confirm-btn.cancel:hover {
+  background: #00d4ff;
+  color: #0a0a1a;
+}
+
+.quit-confirm-btn.confirm {
+  background: rgba(255, 71, 87, 0.2);
+  color: #ff4757;
+  border-color: #ff4757;
+}
+
+.quit-confirm-btn.confirm:hover {
+  background: #ff4757;
+  color: #ffffff;
+}
+
 /* Game Over Screen */
 .game-over-screen {
   text-align: center;
@@ -254,6 +348,7 @@ canvas {
   padding: 20px;
   overflow: hidden;
   touch-action: manipulation;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .game-over-title {
@@ -789,6 +884,36 @@ body:has(.user-top-bar) .game-over-screen {
   color: #a0a0a0;
 }
 
+.leaderboard-empty .empty-icon {
+  font-size: 60px;
+  margin-bottom: 15px;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.leaderboard-empty h3 {
+  color: #00d4ff;
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.leaderboard-empty .empty-cta {
+  color: #00ff88;
+  font-size: 16px;
+  font-weight: bold;
+  margin: 15px 0;
+}
+
+.leaderboard-empty .empty-hint {
+  font-size: 12px;
+  color: #6a6a8a;
+  margin-top: 15px;
+}
+
 .loading-spinner {
   display: inline-block;
   font-size: 40px;
@@ -816,10 +941,13 @@ body:has(.user-top-bar) .game-over-screen {
   margin-bottom: 25px;
 }
 
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
 .leaderboard-header {
-  display: grid;
-  grid-template-columns: 50px 1fr 70px 60px;
-  padding: 10px 15px;
   color: #6a6a8a;
   font-size: 12px;
   text-transform: uppercase;
@@ -827,27 +955,47 @@ body:has(.user-top-bar) .game-over-screen {
   border-bottom: 1px solid #4a4a7a;
 }
 
-.leaderboard-row {
-  display: grid;
-  grid-template-columns: 50px 1fr 70px 60px;
+.leaderboard-header th {
+  padding: 10px 15px;
+  font-weight: normal;
+  text-align: left;
+}
+
+.leaderboard-header th.col-rank,
+.leaderboard-header th.col-score,
+.leaderboard-header th.col-level {
+  text-align: center;
+}
+
+.leaderboard-row td {
   padding: 12px 15px;
-  align-items: center;
+  vertical-align: middle;
   border-bottom: 1px solid rgba(74, 74, 122, 0.3);
   transition: background 0.2s;
 }
 
-.leaderboard-row:hover {
+.leaderboard-row:hover td {
   background: rgba(74, 74, 122, 0.2);
 }
 
-.leaderboard-row.top-three {
+.leaderboard-row.top-three td {
   background: rgba(180, 74, 255, 0.1);
 }
 
-.leaderboard-row.current-player {
+.leaderboard-row.current-player td {
   background: rgba(0, 255, 136, 0.1);
-  border: 1px solid rgba(0, 255, 136, 0.3);
-  border-radius: 8px;
+}
+
+.leaderboard-row.current-player td:first-child {
+  border-left: 2px solid rgba(0, 255, 136, 0.5);
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.leaderboard-row.current-player td:last-child {
+  border-right: 2px solid rgba(0, 255, 136, 0.5);
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
 }
 
 .col-rank {
@@ -960,11 +1108,25 @@ body:has(.user-top-bar) .game-over-screen {
     padding: 20px;
   }
 
-  .leaderboard-header,
-  .leaderboard-row {
-    grid-template-columns: 40px 1fr 60px 50px;
-    padding: 10px;
+  .leaderboard-table {
     font-size: 14px;
+  }
+
+  .leaderboard-header th,
+  .leaderboard-row td {
+    padding: 10px 8px;
+  }
+
+  .col-rank {
+    width: 40px;
+  }
+
+  .col-score {
+    width: 60px;
+  }
+
+  .col-level {
+    width: 50px;
   }
 
   .stats-grid {
@@ -1007,6 +1169,7 @@ body:has(.user-top-bar) .game-over-screen {
   z-index: 1;
   max-width: 400px;
   width: 90%;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .auth-title {
@@ -1360,13 +1523,13 @@ body:has(.user-top-bar) .game-over-screen {
   margin-top: 2px;
 }
 
-/* Toggle Button */
+/* Toggle Button - sized for touch (min 44x44 target) */
 .toggle-btn {
-  width: 56px;
-  height: 30px;
+  width: 60px;
+  height: 36px;
   background: #4a4a7a;
   border: none;
-  border-radius: 15px;
+  border-radius: 18px;
   cursor: pointer;
   position: relative;
   transition: background 0.3s;
@@ -1378,17 +1541,17 @@ body:has(.user-top-bar) .game-over-screen {
 
 .toggle-slider {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 24px;
-  height: 24px;
+  top: 4px;
+  left: 4px;
+  width: 28px;
+  height: 28px;
   background: #ffffff;
   border-radius: 50%;
   transition: transform 0.3s;
 }
 
 .toggle-btn.active .toggle-slider {
-  transform: translateX(26px);
+  transform: translateX(24px);
 }
 
 .settings-footer {
@@ -1415,4 +1578,72 @@ body:has(.user-top-bar) .game-over-screen {
   border-color: #00d4ff;
   color: #00d4ff;
   box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+/* ============================================
+   ACCESSIBILITY IMPROVEMENTS
+   ============================================ */
+
+/* Focus indicators for keyboard navigation */
+button:focus-visible,
+.auth-tab:focus-visible,
+.toggle-btn:focus-visible,
+input:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 2px;
+}
+
+/* Z-index hierarchy */
+:root {
+  --z-base: 1;
+  --z-touch-controls: 100;
+  --z-user-bar: 500;
+  --z-modal: 1000;
+  --z-landscape-warning: 9999;
+}
+
+/* Override existing z-index values with CSS variables */
+.touch-controls {
+  z-index: var(--z-touch-controls);
+}
+
+.user-top-bar {
+  z-index: var(--z-user-bar);
+}
+
+.leaderboard-overlay,
+.settings-overlay {
+  z-index: var(--z-modal);
+}
+
+.landscape-warning {
+  z-index: var(--z-landscape-warning);
+}
+
+/* Safe area insets for notched devices */
+.app-container {
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+}
+
+.user-top-bar {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .loading-spinner,
+  .loading-spinner-btn {
+    animation: none;
+  }
 }

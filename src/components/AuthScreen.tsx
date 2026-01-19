@@ -1,5 +1,5 @@
 // Authentication Screen Component - Sign In / Sign Up
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { signIn, signUp } from '../authService';
 import type { AuthUser } from '../types';
 import {
@@ -24,6 +24,33 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const authCardRef = useRef<HTMLDivElement>(null);
+
+  // Handle soft keyboard overlap on mobile
+  useEffect(() => {
+    const handleViewportResize = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        const keyboardHeight = windowHeight - viewportHeight;
+
+        // Only apply offset if keyboard is significant (> 100px)
+        if (keyboardHeight > 100) {
+          setKeyboardOffset(keyboardHeight * 0.5);
+        } else {
+          setKeyboardOffset(0);
+        }
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+      return () => {
+        window.visualViewport?.removeEventListener('resize', handleViewportResize);
+      };
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +143,11 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
         <span className="title-invaders">INVADERS</span>
       </h1>
 
-      <div className="auth-card">
+      <div
+        className="auth-card"
+        ref={authCardRef}
+        style={keyboardOffset > 0 ? { transform: `translateY(-${keyboardOffset}px)` } : undefined}
+      >
         {/* Tabs */}
         <div className="auth-tabs">
           <button
@@ -143,7 +174,10 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
               id="username"
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                if (error) setError('');
+              }}
               placeholder="Enter username"
               className="auth-input"
               maxLength={15}
@@ -160,7 +194,10 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError('');
+                }}
                 placeholder="Enter password"
                 className="auth-input"
                 disabled={isLoading}
@@ -171,6 +208,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? '🙈' : '👁️'}
               </button>
@@ -185,7 +223,10 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (error) setError('');
+                  }}
                   placeholder="Confirm password"
                   className="auth-input"
                   disabled={isLoading}
@@ -196,6 +237,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
                   className="password-toggle"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   tabIndex={-1}
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                 >
                   {showConfirmPassword ? '🙈' : '👁️'}
                 </button>

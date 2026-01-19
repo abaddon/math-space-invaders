@@ -58,6 +58,7 @@ function App() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showQuitConfirm, setShowQuitConfirm] = useState(false);
 
   const gameLoopRef = useRef<number | null>(null);
   const keysPressed = useRef<Set<string>>(new Set());
@@ -70,6 +71,7 @@ function App() {
   const [timeRemaining, setTimeRemaining] = useState<number>(1); // 0-1 percentage
   const [countdownNumber, setCountdownNumber] = useState<number>(0);
   const levelUpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const starCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Calculate responsive block width based on canvas size
   // For 3 blocks with 30px padding on sides and 10px minimum spacing between blocks:
@@ -101,7 +103,11 @@ function App() {
       });
     }
 
-    setParticles(prev => [...prev, ...newParticles]);
+    setParticles(prev => {
+      const combined = [...prev, ...newParticles];
+      // Cap particles at 50 to prevent performance issues
+      return combined.length > 50 ? combined.slice(-50) : combined;
+    });
   }, []);
 
   // Initialize analytics on mount
@@ -266,6 +272,32 @@ function App() {
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
   }, [authUser]);
+
+  // Create cached star background canvas
+  useEffect(() => {
+    const offscreen = document.createElement('canvas');
+    offscreen.width = canvasSize.width;
+    offscreen.height = canvasSize.height;
+    const ctx = offscreen.getContext('2d');
+    if (ctx) {
+      // Draw space background
+      ctx.fillStyle = COLORS.SPACE_BLACK;
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+      // Draw stars
+      ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < 50; i++) {
+        const x = (i * 73) % canvasSize.width;
+        const y = (i * 137) % canvasSize.height;
+        const size = (i % 3) + 1;
+        ctx.globalAlpha = 0.3 + (i % 5) * 0.1;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    starCanvasRef.current = offscreen;
+  }, [canvasSize.width, canvasSize.height]);
 
   // Update level config when level changes
   useEffect(() => {
@@ -603,22 +635,14 @@ function App() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
-    ctx.fillStyle = COLORS.SPACE_BLACK;
-    ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
-
-    // Draw stars
-    ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 50; i++) {
-      const x = (i * 73) % canvasSize.width;
-      const y = (i * 137) % canvasSize.height;
-      const size = (i % 3) + 1;
-      ctx.globalAlpha = 0.3 + (i % 5) * 0.1;
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
+    // Draw cached star background (performance optimization)
+    if (starCanvasRef.current) {
+      ctx.drawImage(starCanvasRef.current, 0, 0);
+    } else {
+      // Fallback if cache not ready
+      ctx.fillStyle = COLORS.SPACE_BLACK;
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
     }
-    ctx.globalAlpha = 1;
 
     if (gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'LEVEL_UP' || gameState === 'COUNTDOWN') {
       // Draw HUD background
@@ -659,10 +683,23 @@ function App() {
       const progress = (score.correctInLevel / GAME_CONFIG.CORRECT_ANSWERS_PER_LEVEL) * progressWidth;
       ctx.fillRect(progressX, 42, progress, 4);
 
-      // Draw answer blocks
+      // Helper to get font size based on string length (memoized per block)
+      const getFontSize = (len: number): number => {
+        if (len > 6) return 14;
+        if (len > 4) return 18;
+        if (len > 2) return 20;
+        return 24;
+      };
+
+      // Draw answer blocks with variety
       answerBlocks.forEach((block) => {
-        // Block body
-        ctx.fillStyle = COLORS.ANSWER_BG;
+        // Use block id hash for consistent randomization per block
+        const blockHash = block.id.charCodeAt(block.id.length - 1);
+        const blockHash2 = block.id.charCodeAt(0);
+
+        // Block body with subtle color variation
+        const hueShift = (blockHash % 3) * 10; // Slight purple/blue variation
+        ctx.fillStyle = `hsl(${250 + hueShift}, 30%, 18%)`;
         ctx.strokeStyle = COLORS.ANSWER_BORDER;
         ctx.lineWidth = 2;
 
@@ -679,9 +716,12 @@ function App() {
         const eyeY = by - 4;
 
         // Simple blinking based on time and block id hash
-        const blockHash = block.id.charCodeAt(block.id.length - 1);
         const blinkCycle = (Date.now() + blockHash * 100) % 3000;
         const isBlinking = blinkCycle < 150;
+
+        // Eye expression variety based on block hash
+        const eyeExpression = blockHash % 3; // 0: normal, 1: wide, 2: squint
+        const eyeSize = eyeExpression === 1 ? 10 : eyeExpression === 2 ? 6 : 8;
 
         ctx.fillStyle = COLORS.PRIMARY_GREEN;
         ctx.shadowColor = COLORS.PRIMARY_GREEN;
@@ -697,47 +737,50 @@ function App() {
           ctx.strokeStyle = COLORS.PRIMARY_GREEN;
           ctx.stroke();
         } else {
-          // Open eyes (larger circles)
-          ctx.arc(block.x - eyeOffset, eyeY, 8, 0, Math.PI * 2);
-          ctx.arc(block.x + eyeOffset, eyeY, 8, 0, Math.PI * 2);
+          // Open eyes with variety
+          ctx.arc(block.x - eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
+          ctx.arc(block.x + eyeOffset, eyeY, eyeSize, 0, Math.PI * 2);
           ctx.fill();
 
-          // Pupils
+          // Pupils with direction variety
+          const pupilOffset = (blockHash2 % 3) - 1; // -1, 0, or 1
           ctx.fillStyle = '#000';
           ctx.shadowBlur = 0;
           ctx.beginPath();
-          ctx.arc(block.x - eyeOffset + 2, eyeY, 3, 0, Math.PI * 2);
-          ctx.arc(block.x + eyeOffset + 2, eyeY, 3, 0, Math.PI * 2);
+          ctx.arc(block.x - eyeOffset + pupilOffset * 2, eyeY, 3, 0, Math.PI * 2);
+          ctx.arc(block.x + eyeOffset + pupilOffset * 2, eyeY, 3, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.shadowBlur = 0;
 
-        // Antennae with glowing tips
+        // Antennae with varied angles
+        const antennaAngleL = -0.2 + (blockHash % 5) * 0.1; // Slight angle variation
+        const antennaAngleR = 0.2 - (blockHash2 % 5) * 0.1;
+        const antennaLength = 12;
+
         ctx.strokeStyle = COLORS.PRIMARY_PURPLE;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(block.x - eyeOffset, by - 12);
-        ctx.lineTo(block.x - eyeOffset, by - 22);
+        ctx.lineTo(block.x - eyeOffset + Math.sin(antennaAngleL) * antennaLength, by - 12 - antennaLength);
         ctx.moveTo(block.x + eyeOffset, by - 12);
-        ctx.lineTo(block.x + eyeOffset, by - 22);
+        ctx.lineTo(block.x + eyeOffset + Math.sin(antennaAngleR) * antennaLength, by - 12 - antennaLength);
         ctx.stroke();
 
-        // Glowing antenna bulbs
+        // Glowing antenna bulbs with slight size variation
+        const bulbSize = 3 + (blockHash % 3);
         ctx.fillStyle = COLORS.PRIMARY_PURPLE;
         ctx.shadowColor = COLORS.PRIMARY_PURPLE;
         ctx.shadowBlur = 10;
         ctx.beginPath();
-        ctx.arc(block.x - eyeOffset, by - 24, 4, 0, Math.PI * 2);
-        ctx.arc(block.x + eyeOffset, by - 24, 4, 0, Math.PI * 2);
+        ctx.arc(block.x - eyeOffset + Math.sin(antennaAngleL) * antennaLength, by - 12 - antennaLength - 2, bulbSize, 0, Math.PI * 2);
+        ctx.arc(block.x + eyeOffset + Math.sin(antennaAngleR) * antennaLength, by - 12 - antennaLength - 2, bulbSize, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Answer value - adjust font size based on content length
+        // Answer value - memoized font size calculation
         const valueStr = String(block.value);
-        let fontSize = 24;
-        if (valueStr.length > 6) fontSize = 14;
-        else if (valueStr.length > 4) fontSize = 18;
-        else if (valueStr.length > 2) fontSize = 20;
+        const fontSize = getFontSize(valueStr.length);
 
         ctx.fillStyle = COLORS.TEXT_WHITE;
         ctx.font = `bold ${fontSize}px Arial`;
@@ -756,14 +799,40 @@ function App() {
       });
       ctx.globalAlpha = 1;
 
-      // Draw projectile
+      // Draw projectile with trailing effect
       if (projectile?.active) {
-        ctx.fillStyle = COLORS.PRIMARY_GREEN;
+        const projX = projectile.x - GAME_CONFIG.PROJECTILE_WIDTH / 2;
+        const projY = projectile.y - GAME_CONFIG.PROJECTILE_HEIGHT / 2;
+
+        // Draw trailing glow effect (fading segments behind the projectile)
+        const trailLength = 40;
+        const trailSegments = 5;
+        for (let i = 0; i < trailSegments; i++) {
+          const segmentY = projY + GAME_CONFIG.PROJECTILE_HEIGHT + (i * trailLength / trailSegments);
+          const alpha = 0.6 - (i * 0.12);
+          const width = GAME_CONFIG.PROJECTILE_WIDTH - (i * 0.5);
+
+          ctx.fillStyle = `rgba(0, 255, 136, ${alpha})`;
+          ctx.fillRect(
+            projectile.x - width / 2,
+            segmentY,
+            width,
+            trailLength / trailSegments
+          );
+        }
+
+        // Draw main projectile with gradient
+        const gradient = ctx.createLinearGradient(projX, projY, projX, projY + GAME_CONFIG.PROJECTILE_HEIGHT);
+        gradient.addColorStop(0, '#ffffff');
+        gradient.addColorStop(0.3, COLORS.PRIMARY_GREEN);
+        gradient.addColorStop(1, COLORS.PRIMARY_GREEN);
+
+        ctx.fillStyle = gradient;
         ctx.shadowColor = COLORS.PRIMARY_GREEN;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 15;
         ctx.fillRect(
-          projectile.x - GAME_CONFIG.PROJECTILE_WIDTH / 2,
-          projectile.y - GAME_CONFIG.PROJECTILE_HEIGHT / 2,
+          projX,
+          projY,
           GAME_CONFIG.PROJECTILE_WIDTH,
           GAME_CONFIG.PROJECTILE_HEIGHT
         );
@@ -814,25 +883,57 @@ function App() {
       ctx.fillRect(0, canvasSize.height - 60, canvasSize.width, 60);
 
       // Draw timer bar above problem area
-      const timerBarHeight = 6;
-      const timerBarY = canvasSize.height - 60 - timerBarHeight;
+      const baseTimerBarHeight = 6;
+      const timerBarY = canvasSize.height - 60 - baseTimerBarHeight;
 
       // Timer background
       ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
-      ctx.fillRect(0, timerBarY, canvasSize.width, timerBarHeight);
+      ctx.fillRect(0, timerBarY, canvasSize.width, baseTimerBarHeight);
 
-      // Timer fill - color changes based on time remaining
-      let timerColor = COLORS.PRIMARY_GREEN;
-      if (timeRemaining < 0.3) {
-        timerColor = COLORS.WARNING_RED;
-      } else if (timeRemaining < 0.6) {
-        timerColor = COLORS.WARNING_ORANGE;
+      // Timer fill - smooth color transition based on time remaining
+      // Interpolate between green -> orange -> red
+      const interpolateColor = (color1: string, color2: string, t: number): string => {
+        const r1 = parseInt(color1.slice(1, 3), 16);
+        const g1 = parseInt(color1.slice(3, 5), 16);
+        const b1 = parseInt(color1.slice(5, 7), 16);
+        const r2 = parseInt(color2.slice(1, 3), 16);
+        const g2 = parseInt(color2.slice(3, 5), 16);
+        const b2 = parseInt(color2.slice(5, 7), 16);
+        const r = Math.round(r1 + (r2 - r1) * t);
+        const g = Math.round(g1 + (g2 - g1) * t);
+        const b = Math.round(b1 + (b2 - b1) * t);
+        return `rgb(${r}, ${g}, ${b})`;
+      };
+
+      let timerColor: string;
+      let timerBarHeight = baseTimerBarHeight;
+      let pulseGlow = 8;
+
+      if (timeRemaining > 0.6) {
+        // Fully green
+        timerColor = COLORS.PRIMARY_GREEN;
+      } else if (timeRemaining > 0.3) {
+        // Transition from green to orange (0.6 -> 0.3)
+        const t = (0.6 - timeRemaining) / 0.3;
+        timerColor = interpolateColor(COLORS.PRIMARY_GREEN, COLORS.WARNING_ORANGE, t);
+      } else {
+        // Transition from orange to red (0.3 -> 0)
+        const t = (0.3 - timeRemaining) / 0.3;
+        timerColor = interpolateColor(COLORS.WARNING_ORANGE, COLORS.WARNING_RED, t);
+        // Add pulsing effect for colorblind accessibility
+        const pulseRate = (Date.now() % 400) / 400; // 0.4 second pulse cycle
+        const pulseIntensity = Math.sin(pulseRate * Math.PI * 2);
+        timerBarHeight = baseTimerBarHeight + pulseIntensity * 3; // Pulse between 3-9px
+        pulseGlow = 8 + pulseIntensity * 12; // Pulse glow between 8-20
       }
+
+      // Adjust Y position if bar height changed due to pulse
+      const adjustedTimerBarY = timerBarY - (timerBarHeight - baseTimerBarHeight) / 2;
 
       ctx.fillStyle = timerColor;
       ctx.shadowColor = timerColor;
-      ctx.shadowBlur = 8;
-      ctx.fillRect(0, timerBarY, canvasSize.width * timeRemaining, timerBarHeight);
+      ctx.shadowBlur = pulseGlow;
+      ctx.fillRect(0, adjustedTimerBarY, canvasSize.width * timeRemaining, timerBarHeight);
       ctx.shadowBlur = 0;
 
       // Decorative line
@@ -1140,24 +1241,53 @@ function App() {
             width={canvasSize.width}
             height={canvasSize.height}
             onClick={handleCanvasClick}
+            className={gameState === 'PAUSED' ? 'paused-blur' : ''}
           />
+          {gameState === 'PAUSED' && <div className="pause-blur-overlay"></div>}
           {gameState === 'PLAYING' && (
-            <button className="pause-btn" onClick={() => {
-              setGameState('PAUSED');
-              trackGamePause(score.level, score.score);
-            }}>⏸</button>
+            <button
+              className="pause-btn"
+              onClick={() => {
+                setGameState('PAUSED');
+                trackGamePause(score.level, score.score);
+              }}
+              aria-label="Pause game"
+            >
+              ⏸
+            </button>
           )}
-          {gameState === 'PAUSED' && (
+          {gameState === 'PAUSED' && !showQuitConfirm && (
             <div className="pause-buttons">
               <button onClick={() => {
                 setGameState('PLAYING');
                 trackGameResume(score.level, score.score);
               }}>▶ Resume</button>
               <button onClick={startGame}>🔄 Restart</button>
-              <button onClick={() => {
-                setGameState('MENU');
-                trackScreenView('menu');
-              }}>🏠 Menu</button>
+              <button onClick={() => setShowQuitConfirm(true)}>🏠 Menu</button>
+            </div>
+          )}
+          {gameState === 'PAUSED' && showQuitConfirm && (
+            <div className="quit-confirm-dialog">
+              <h3>Abandon Game?</h3>
+              <p>Your progress will be lost.</p>
+              <div className="quit-confirm-buttons">
+                <button
+                  className="quit-confirm-btn cancel"
+                  onClick={() => setShowQuitConfirm(false)}
+                >
+                  ← Back
+                </button>
+                <button
+                  className="quit-confirm-btn confirm"
+                  onClick={() => {
+                    setShowQuitConfirm(false);
+                    setGameState('MENU');
+                    trackScreenView('menu');
+                  }}
+                >
+                  🚪 Quit Game
+                </button>
+              </div>
             </div>
           )}
 
@@ -1169,6 +1299,7 @@ function App() {
                 className="touch-control fire-btn"
                 onTouchStart={handleFireTouch}
                 onTouchEnd={(e) => e.preventDefault()}
+                aria-label="Fire laser"
               >
                 🔥
               </button>
@@ -1180,6 +1311,7 @@ function App() {
                   onTouchStart={handleMoveLeftStart}
                   onTouchEnd={handleMoveLeftEnd}
                   onTouchCancel={handleMoveLeftEnd}
+                  aria-label="Move spaceship left"
                 >
                   ◀
                 </button>
@@ -1188,6 +1320,7 @@ function App() {
                   onTouchStart={handleMoveRightStart}
                   onTouchEnd={handleMoveRightEnd}
                   onTouchCancel={handleMoveRightEnd}
+                  aria-label="Move spaceship right"
                 >
                   ▶
                 </button>

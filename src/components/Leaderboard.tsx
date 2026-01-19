@@ -76,7 +76,7 @@ export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
   return (
     <div className="leaderboard-overlay">
       <div className="leaderboard-modal">
-        <button className="close-btn" onClick={handleClose}>✕</button>
+        <button className="close-btn" onClick={handleClose} aria-label="Close leaderboard">✕</button>
 
         <h2 className="leaderboard-title">🏆 Global Leaderboard</h2>
 
@@ -94,31 +94,40 @@ export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
           </div>
         ) : entries.length === 0 ? (
           <div className="leaderboard-empty">
-            <p>No scores yet!</p>
-            <p>Be the first to set a record! 🚀</p>
+            <div className="empty-icon">🏆</div>
+            <h3>The Galaxy Awaits Its Hero!</h3>
+            <p>No scores have been recorded yet.</p>
+            <p className="empty-cta">Be the first to claim the #1 spot!</p>
+            <div className="empty-hint">Play now and your score will appear here</div>
           </div>
         ) : (
           <div className="leaderboard-list">
-            <div className="leaderboard-header">
-              <span className="col-rank">Rank</span>
-              <span className="col-player">Player</span>
-              <span className="col-score">Score</span>
-              <span className="col-level">Level</span>
-            </div>
-            {entries.map((entry, index) => (
-              <div
-                key={entry.playerId}
-                className={`leaderboard-row ${currentPlayer?.id === entry.playerId ? 'current-player' : ''} ${index < 3 ? 'top-three' : ''}`}
-              >
-                <span className="col-rank">{getMedalEmoji(index + 1)}</span>
-                <span className="col-player">
-                  {entry.nickname}
-                  {currentPlayer?.id === entry.playerId && <span className="you-badge">YOU</span>}
-                </span>
-                <span className="col-score">{entry.score}</span>
-                <span className="col-level">{entry.level}</span>
-              </div>
-            ))}
+            <table className="leaderboard-table" role="table">
+              <thead>
+                <tr className="leaderboard-header">
+                  <th className="col-rank" scope="col">Rank</th>
+                  <th className="col-player" scope="col">Player</th>
+                  <th className="col-score" scope="col">Score</th>
+                  <th className="col-level" scope="col">Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((entry, index) => (
+                  <tr
+                    key={entry.playerId}
+                    className={`leaderboard-row ${currentPlayer?.id === entry.playerId ? 'current-player' : ''} ${index < 3 ? 'top-three' : ''}`}
+                  >
+                    <td className="col-rank">{getMedalEmoji(index + 1)}</td>
+                    <td className="col-player">
+                      {entry.nickname}
+                      {currentPlayer?.id === entry.playerId && <span className="you-badge">YOU</span>}
+                    </td>
+                    <td className="col-score">{entry.score}</td>
+                    <td className="col-level">{entry.level}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             {hasMore && (
               <button
                 className="load-more-btn"
