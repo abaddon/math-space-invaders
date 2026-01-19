@@ -236,7 +236,7 @@ canvas.paused-blur {
 .pause-btn {
   position: absolute;
   top: 10px;
-  right: 10px;
+  right: 100px;  /* Moved left to avoid overlapping heart icons */
   background: transparent;
   border: none;
   font-size: 24px;
@@ -256,8 +256,9 @@ canvas.paused-blur {
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
   z-index: 10;
+  padding: 10px;
 }
 
 .pause-buttons button {
@@ -451,6 +452,7 @@ canvas.paused-blur {
   font-size: 16px;
   cursor: pointer;
   transition: color 0.2s;
+  margin-top: 15px;
 }
 
 .menu-button:hover {
@@ -469,7 +471,7 @@ canvas.paused-blur {
 
 .fire-btn {
   left: 20px;
-  bottom: 160px;
+  bottom: calc(160px + env(safe-area-inset-bottom, 0px));
   width: 80px;
   height: 80px;
   border-radius: 50%;
@@ -492,7 +494,7 @@ canvas.paused-blur {
 
 .move-controls {
   right: 20px;
-  bottom: 160px;
+  bottom: calc(160px + env(safe-area-inset-bottom, 0px));
   display: flex;
   gap: 10px;
 }
@@ -563,12 +565,12 @@ canvas.paused-blur {
     height: 70px;
     font-size: 30px;
     left: 15px;
-    bottom: 150px;
+    bottom: calc(150px + env(safe-area-inset-bottom, 0px));
   }
 
   .move-controls {
     right: 15px;
-    bottom: 150px;
+    bottom: calc(150px + env(safe-area-inset-bottom, 0px));
   }
 
   .move-btn {
@@ -787,6 +789,15 @@ body:has(.user-top-bar) .game-over-screen {
 }
 
 /* Leaderboard Button */
+/* Menu Buttons Container */
+.menu-buttons-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+  margin-top: 20px;
+}
+
 .leaderboard-btn {
   background: transparent;
   color: #b44aff;
@@ -796,7 +807,6 @@ body:has(.user-top-bar) .game-over-screen {
   font-weight: bold;
   border-radius: 25px;
   cursor: pointer;
-  margin-top: 15px;
   transition: all 0.3s ease;
 }
 
@@ -854,14 +864,19 @@ body:has(.user-top-bar) .game-over-screen {
 
 .close-btn {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 10px;
+  right: 10px;
   background: transparent;
   border: none;
   color: #a0a0a0;
   font-size: 24px;
   cursor: pointer;
   transition: color 0.2s;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-btn:hover {
@@ -1106,6 +1121,8 @@ body:has(.user-top-bar) .game-over-screen {
 @media (max-width: 500px) {
   .leaderboard-modal {
     padding: 20px;
+    max-height: 70vh;
+    padding-bottom: 40px; /* Extra padding for scroll affordance */
   }
 
   .leaderboard-table {
@@ -1202,7 +1219,7 @@ body:has(.user-top-bar) .game-over-screen {
 /* Auth Tabs */
 .auth-tabs {
   display: flex;
-  gap: 0;
+  gap: 4px;
   margin-bottom: 25px;
   border-radius: 12px;
   overflow: hidden;
@@ -1294,7 +1311,7 @@ body:has(.user-top-bar) .game-over-screen {
   cursor: pointer;
   box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
   transition: all 0.3s ease;
-  margin-top: 5px;
+  margin-top: 15px;
 }
 
 .auth-submit-btn:hover:not(:disabled) {
@@ -1471,6 +1488,8 @@ body:has(.user-top-bar) .game-over-screen {
   padding: 30px;
   max-width: 400px;
   width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
   position: relative;
   box-shadow: 0 0 30px rgba(0, 212, 255, 0.4);
 }
@@ -1570,7 +1589,6 @@ body:has(.user-top-bar) .game-over-screen {
   font-size: 16px;
   border-radius: 25px;
   cursor: pointer;
-  margin-top: 10px;
   transition: all 0.3s ease;
 }
 

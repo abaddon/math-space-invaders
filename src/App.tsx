@@ -1172,15 +1172,17 @@ function App() {
           <button className="start-button" onClick={startGame}>
             ▶ START GAME
           </button>
-          <button className="leaderboard-btn" onClick={() => {
-            setShowLeaderboard(true);
-            trackLeaderboardOpen('menu');
-          }}>
-            🏆 LEADERBOARD
-          </button>
-          <button className="settings-btn" onClick={() => setShowSettings(true)}>
-            ⚙️ SETTINGS
-          </button>
+          <div className="menu-buttons-container">
+            <button className="leaderboard-btn" onClick={() => {
+              setShowLeaderboard(true);
+              trackLeaderboardOpen('menu');
+            }}>
+              🏆 LEADERBOARD
+            </button>
+            <button className="settings-btn" onClick={() => setShowSettings(true)}>
+              ⚙️ SETTINGS
+            </button>
+          </div>
           <div className="instructions">
             <h3>HOW TO PLAY</h3>
             <p>← → or A D - Move spaceship</p>
