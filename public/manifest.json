@@ -1,0 +1,20 @@
+{
+  "name": "Math Space Invaders",
+  "short_name": "Math Invaders",
+  "description": "Learn math by shooting aliens with correct answers! An educational arcade game for kids.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#00d4ff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "games"],
+  "lang": "en"
+}

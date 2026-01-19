@@ -178,7 +178,7 @@ export const trackTierUp = (
 // LEADERBOARD EVENTS
 // ============================================
 
-export const trackLeaderboardOpen = (source: 'user_bar' | 'game_over'): void => {
+export const trackLeaderboardOpen = (source: 'user_bar' | 'game_over' | 'menu'): void => {
   trackEvent('leaderboard_open', {
     source
   });

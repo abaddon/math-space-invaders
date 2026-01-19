@@ -9,26 +9,47 @@ interface LeaderboardProps {
   onClose: () => void;
 }
 
+const PAGE_SIZE = 10;
+
 export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentLimit, setCurrentLimit] = useState(PAGE_SIZE);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
-    loadLeaderboard();
+    loadLeaderboard(PAGE_SIZE);
   }, []);
 
-  const loadLeaderboard = async () => {
+  const loadLeaderboard = async (limit: number) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getLeaderboard(10);
+      const data = await getLeaderboard(limit);
       setEntries(data);
+      setHasMore(data.length >= limit);
     } catch (err) {
       console.error('Failed to load leaderboard:', err);
       setError('Failed to load leaderboard. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    setIsLoadingMore(true);
+    const newLimit = currentLimit + PAGE_SIZE;
+    try {
+      const data = await getLeaderboard(newLimit);
+      setEntries(data);
+      setCurrentLimit(newLimit);
+      setHasMore(data.length >= newLimit);
+    } catch (err) {
+      console.error('Failed to load more:', err);
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -39,7 +60,7 @@ export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
 
   const handleRetry = () => {
     trackLeaderboardRetry();
-    loadLeaderboard();
+    loadLeaderboard(currentLimit);
   };
 
   const getMedalEmoji = (rank: number): string => {
@@ -98,6 +119,15 @@ export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
                 <span className="col-level">{entry.level}</span>
               </div>
             ))}
+            {hasMore && (
+              <button
+                className="load-more-btn"
+                onClick={loadMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? '⏳ Loading...' : '📋 Load More'}
+              </button>
+            )}
           </div>
         )}
 

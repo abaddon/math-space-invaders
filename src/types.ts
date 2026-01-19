@@ -1,6 +1,6 @@
 // Game Types
 
-export type GameState = 'MENU' | 'PLAYING' | 'PAUSED' | 'LEVEL_UP' | 'GAME_OVER';
+export type GameState = 'MENU' | 'COUNTDOWN' | 'PLAYING' | 'PAUSED' | 'LEVEL_UP' | 'GAME_OVER';
 
 // Legacy type for backward compatibility
 export type MathOperation = 'addition' | 'subtraction' | 'multiplication' | 'division';
@@ -69,6 +69,17 @@ export interface Projectile {
   x: number;
   y: number;
   active: boolean;
+}
+
+// Particle for visual effects
+export interface Particle {
+  x: number;
+  y: number;
+  vx: number;   // velocity x
+  vy: number;   // velocity y
+  life: number; // remaining life (0-1)
+  color: string;
+  size: number;
 }
 
 export interface GameScore {

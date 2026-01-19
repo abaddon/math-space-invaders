@@ -374,11 +374,11 @@ canvas {
 
 .fire-btn {
   left: 20px;
-  bottom: 100px;
+  bottom: 160px;
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: rgba(255, 71, 87, 0.8);
+  background: rgba(255, 71, 87, 0.7);
   border: 3px solid #ff4757;
   font-size: 36px;
   display: flex;
@@ -397,7 +397,7 @@ canvas {
 
 .move-controls {
   right: 20px;
-  bottom: 100px;
+  bottom: 160px;
   display: flex;
   gap: 10px;
 }
@@ -468,12 +468,12 @@ canvas {
     height: 70px;
     font-size: 30px;
     left: 15px;
-    bottom: 90px;
+    bottom: 150px;
   }
 
   .move-controls {
     right: 15px;
-    bottom: 90px;
+    bottom: 150px;
   }
 
   .move-btn {
@@ -872,6 +872,32 @@ body:has(.user-top-bar) .game-over-screen {
   font-weight: bold;
 }
 
+/* Load More Button */
+.load-more-btn {
+  display: block;
+  width: 100%;
+  background: rgba(42, 42, 74, 0.8);
+  border: 1px solid #4a4a7a;
+  color: #a0a0a0;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: rgba(180, 74, 255, 0.2);
+  border-color: #b44aff;
+  color: #ffffff;
+}
+
+.load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .col-score {
   color: #00ff88;
   font-weight: bold;
@@ -1175,4 +1201,218 @@ body:has(.user-top-bar) .game-over-screen {
     padding: 14px 25px;
     font-size: 16px;
   }
+}
+
+/* Password Toggle */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .auth-input {
+  padding-right: 45px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 5px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.password-toggle:hover {
+  opacity: 1;
+}
+
+/* Loading Spinner */
+.loading-spinner-btn {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+/* Landscape Warning Overlay */
+.landscape-warning {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 26, 0.98);
+  z-index: 9999;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+}
+
+.landscape-warning .warning-icon {
+  font-size: 60px;
+  margin-bottom: 20px;
+  animation: rotate-phone 2s ease-in-out infinite;
+}
+
+@keyframes rotate-phone {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+}
+
+.landscape-warning h2 {
+  color: #00d4ff;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.landscape-warning p {
+  color: #a0a0a0;
+  font-size: 16px;
+}
+
+/* Show landscape warning only on mobile in landscape */
+@media (max-width: 900px) and (orientation: landscape) {
+  .landscape-warning {
+    display: flex;
+  }
+}
+
+/* Pause Button Repositioning */
+.pause-btn {
+  z-index: 50;
+}
+
+/* Settings Modal */
+.settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.settings-modal {
+  background: rgba(20, 20, 40, 0.95);
+  border: 2px solid #00d4ff;
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  position: relative;
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.4);
+}
+
+.settings-title {
+  text-align: center;
+  font-size: 28px;
+  color: #00d4ff;
+  text-shadow: 0 0 15px #00d4ff;
+  margin-bottom: 25px;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: rgba(42, 42, 74, 0.5);
+  border-radius: 12px;
+  border: 1px solid #4a4a7a;
+}
+
+.setting-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.setting-icon {
+  font-size: 24px;
+}
+
+.setting-label {
+  display: block;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.setting-desc {
+  display: block;
+  color: #6a6a8a;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* Toggle Button */
+.toggle-btn {
+  width: 56px;
+  height: 30px;
+  background: #4a4a7a;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.3s;
+}
+
+.toggle-btn.active {
+  background: #00d4ff;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+.toggle-btn.active .toggle-slider {
+  transform: translateX(26px);
+}
+
+.settings-footer {
+  text-align: center;
+  margin-top: 25px;
+  color: #6a6a8a;
+  font-size: 12px;
+}
+
+/* Settings Button in Menu */
+.settings-btn {
+  background: transparent;
+  border: 2px solid #6a6a8a;
+  color: #a0a0a0;
+  padding: 12px 25px;
+  font-size: 16px;
+  border-radius: 25px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+}
+
+.settings-btn:hover {
+  border-color: #00d4ff;
+  color: #00d4ff;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
 }

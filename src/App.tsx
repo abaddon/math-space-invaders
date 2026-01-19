@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import type { GameState, GameScore, MathProblem, AnswerBlock, Projectile, PlayerProfile, AuthUser, LevelConfig } from './types';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { GameState, GameScore, MathProblem, AnswerBlock, Projectile, PlayerProfile, AuthUser, LevelConfig, Particle } from './types';
 import { GAME_CONFIG, COLORS } from './constants';
 import { generateMathProblem, generateAnswerBlocks, getLevelConfig, calculateFallSpeed } from './mathGenerator';
 import { AuthScreen } from './components/AuthScreen';
 import { Leaderboard } from './components/Leaderboard';
+import { Settings } from './components/Settings';
 import { getSession, validateSession, signOut } from './authService';
 import { getPlayerProfile, updatePlayerStats } from './leaderboardService';
 import { getTierDescription, isNewTier, getTierNumber } from './utils/levelUtils';
+import { playSound } from './services/audioService';
 import {
   initAnalytics,
   trackSessionRestored,
@@ -45,6 +47,7 @@ function App() {
   const [starshipX, setStarshipX] = useState(0);
   const [lastHitResult, setLastHitResult] = useState<'correct' | 'wrong' | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 400, height: 600 });
+  const [particles, setParticles] = useState<Particle[]>([]);
 
   // Level configuration state
   const [levelConfig, setLevelConfig] = useState<LevelConfig | null>(null);
@@ -54,12 +57,52 @@ function App() {
   const [currentPlayer, setCurrentPlayer] = useState<PlayerProfile | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const gameLoopRef = useRef<number | null>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   const isProcessingWrongAnswer = useRef(false);
   const touchControlsActive = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  // Timer and countdown state
+  const [problemStartTime, setProblemStartTime] = useState<number>(0);
+  const [timeRemaining, setTimeRemaining] = useState<number>(1); // 0-1 percentage
+  const [countdownNumber, setCountdownNumber] = useState<number>(0);
+  const levelUpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Calculate responsive block width based on canvas size
+  // For 3 blocks with 30px padding on sides and 10px minimum spacing between blocks:
+  // canvasWidth = 60 + 3*blockWidth + 20 (minimum), so blockWidth = (canvasWidth - 80) / 3
+  const answerBlockWidth = useMemo(() => {
+    const minWidth = 70;
+    const maxWidth = GAME_CONFIG.ANSWER_BLOCK_WIDTH; // 100
+    const calculatedWidth = Math.floor((canvasSize.width - 80) / 3);
+    return Math.max(minWidth, Math.min(maxWidth, calculatedWidth));
+  }, [canvasSize.width]);
+
+  // Spawn particles at a position
+  const spawnParticles = useCallback((x: number, y: number, isCorrect: boolean) => {
+    const count = isCorrect ? 15 : 10;
+    const color = isCorrect ? COLORS.PRIMARY_GREEN : COLORS.WARNING_RED;
+    const newParticles: Particle[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+      const speed = 2 + Math.random() * 4;
+      newParticles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        color,
+        size: 3 + Math.random() * 4
+      });
+    }
+
+    setParticles(prev => [...prev, ...newParticles]);
+  }, []);
 
   // Initialize analytics on mount
   useEffect(() => {
@@ -245,16 +288,20 @@ function App() {
     const blocks = generateAnswerBlocks(
       problem,
       canvasSize.width,
-      GAME_CONFIG.ANSWER_BLOCK_WIDTH,
+      answerBlockWidth,
       80
     );
     setAnswerBlocks(blocks);
     setProjectile(null);
     setLastHitResult(null);
-  }, [score.level, canvasSize.width]);
+    // Reset timer for new problem
+    setProblemStartTime(Date.now());
+    setTimeRemaining(1);
+  }, [score.level, canvasSize.width, answerBlockWidth]);
 
   // Handle correct answer
   const handleCorrectAnswer = useCallback(() => {
+    playSound('correct');
     setLastHitResult('correct');
     setTimeout(() => setLastHitResult(null), 300);
 
@@ -273,8 +320,14 @@ function App() {
         const oldTier = getTierNumber(prev.level);
 
         setGameState('LEVEL_UP');
-        setTimeout(() => {
+        playSound('levelUp');
+        // Clear any existing timeout
+        if (levelUpTimeoutRef.current) {
+          clearTimeout(levelUpTimeoutRef.current);
+        }
+        levelUpTimeoutRef.current = setTimeout(() => {
           setGameState('PLAYING');
+          levelUpTimeoutRef.current = null;
         }, GAME_CONFIG.LEVEL_UP_DELAY);
 
         // Track level up
@@ -303,6 +356,7 @@ function App() {
     if (isProcessingWrongAnswer.current) return;
     isProcessingWrongAnswer.current = true;
 
+    playSound('wrong');
     setLastHitResult('wrong');
     setTimeout(() => setLastHitResult(null), 300);
 
@@ -320,6 +374,7 @@ function App() {
 
       if (newLives <= 0) {
         setGameState('GAME_OVER');
+        playSound('gameOver');
         // Save stats when game over
         const finalScore = { ...prev, lives: 0 };
         saveGameStats(finalScore);
@@ -343,7 +398,7 @@ function App() {
     }, 100);
   }, [saveGameStats, currentProblem, currentPlayer]);
 
-  // Start game
+  // Start game with countdown
   const startGame = useCallback(() => {
     setScore({
       score: 0,
@@ -351,17 +406,41 @@ function App() {
       lives: GAME_CONFIG.INITIAL_LIVES,
       correctInLevel: 0,
     });
-    setGameState('PLAYING');
     setStarshipX(canvasSize.width / 2);
+    setAnswerBlocks([]);
+    setProjectile(null);
+    setTimeRemaining(1);
+
+    // Start countdown
+    setCountdownNumber(3);
+    setGameState('COUNTDOWN');
 
     // Track game start
     trackGameStart(authUser?.playerId);
     trackScreenView('game');
   }, [canvasSize.width, authUser?.playerId]);
 
+  // Countdown effect
+  useEffect(() => {
+    if (gameState !== 'COUNTDOWN') return;
+
+    if (countdownNumber > 0) {
+      playSound('countdown');
+      const timer = setTimeout(() => {
+        setCountdownNumber(countdownNumber - 1);
+      }, 800);
+      return () => clearTimeout(timer);
+    } else {
+      // Countdown finished, start playing
+      playSound('correct'); // Play a "go" sound
+      setGameState('PLAYING');
+    }
+  }, [gameState, countdownNumber]);
+
   // Fire projectile
   const fireProjectile = useCallback(() => {
     if (projectile?.active || gameState !== 'PLAYING') return;
+    playSound('laser');
     setProjectile({
       x: starshipX,
       y: canvasSize.height - 120,
@@ -369,13 +448,27 @@ function App() {
     });
   }, [projectile, starshipX, canvasSize.height, gameState]);
 
+  // Skip level up screen
+  const skipLevelUp = useCallback(() => {
+    if (gameState !== 'LEVEL_UP') return;
+    if (levelUpTimeoutRef.current) {
+      clearTimeout(levelUpTimeoutRef.current);
+      levelUpTimeoutRef.current = null;
+    }
+    setGameState('PLAYING');
+  }, [gameState]);
+
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current.add(e.key);
       if (e.key === ' ' || e.key === 'ArrowUp') {
         e.preventDefault();
-        fireProjectile();
+        if (gameState === 'LEVEL_UP') {
+          skipLevelUp();
+        } else {
+          fireProjectile();
+        }
       }
       if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
         if (gameState === 'PLAYING') {
@@ -397,7 +490,7 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [fireProjectile, gameState, score.level, score.score]);
+  }, [fireProjectile, skipLevelUp, gameState, score.level, score.score]);
 
   // Generate round when game starts or after hit
   useEffect(() => {
@@ -411,6 +504,13 @@ function App() {
     if (gameState !== 'PLAYING') return;
 
     const gameLoop = () => {
+      // Update time remaining for visual timer
+      if (levelConfig && problemStartTime > 0) {
+        const elapsed = (Date.now() - problemStartTime) / 1000;
+        const remaining = Math.max(0, 1 - elapsed / levelConfig.timeAvailable);
+        setTimeRemaining(remaining);
+      }
+
       // Handle keyboard and touch movement
       const moveSpeed = 8;
       if (keysPressed.current.has('ArrowLeft') || keysPressed.current.has('a') || touchControlsActive.current.left) {
@@ -456,8 +556,11 @@ function App() {
             const dx = Math.abs(proj.x - block.x);
             const dy = Math.abs(proj.y - block.y);
 
-            if (dx < GAME_CONFIG.ANSWER_BLOCK_WIDTH / 2 + 5 &&
+            if (dx < answerBlockWidth / 2 + 5 &&
                 dy < GAME_CONFIG.ANSWER_BLOCK_HEIGHT / 2 + 5) {
+              // Spawn particles at hit location
+              spawnParticles(block.x, block.y, block.isCorrect);
+
               if (block.isCorrect) {
                 handleCorrectAnswer();
               } else {
@@ -472,6 +575,18 @@ function App() {
         return blocks;
       });
 
+      // Update particles
+      setParticles(prev => prev
+        .map(p => ({
+          ...p,
+          x: p.x + p.vx,
+          y: p.y + p.vy,
+          vy: p.vy + 0.1, // gravity
+          life: p.life - 0.03
+        }))
+        .filter(p => p.life > 0)
+      );
+
       gameLoopRef.current = requestAnimationFrame(gameLoop);
     };
 
@@ -479,7 +594,7 @@ function App() {
     return () => {
       if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
     };
-  }, [gameState, canvasSize, getCurrentSpeed, handleCorrectAnswer, handleWrongAnswer]);
+  }, [gameState, canvasSize, getCurrentSpeed, handleCorrectAnswer, handleWrongAnswer, levelConfig, problemStartTime, answerBlockWidth, spawnParticles]);
 
   // Draw game
   useEffect(() => {
@@ -505,7 +620,7 @@ function App() {
     }
     ctx.globalAlpha = 1;
 
-    if (gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'LEVEL_UP') {
+    if (gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'LEVEL_UP' || gameState === 'COUNTDOWN') {
       // Draw HUD background
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.fillRect(0, 0, canvasSize.width, 50);
@@ -528,12 +643,11 @@ function App() {
         ctx.fillText(`${levelConfig.timeAvailable.toFixed(1)}s`, canvasSize.width / 2, 32);
       }
 
-      // Draw lives
-      ctx.fillStyle = COLORS.WARNING_RED;
-      ctx.font = 'bold 16px Arial';
+      // Draw lives (using emoji for cross-platform consistency)
+      ctx.font = '18px Arial';
       ctx.textAlign = 'right';
       for (let i = 0; i < score.lives; i++) {
-        ctx.fillText('♥', canvasSize.width - 15 - (score.lives - 1 - i) * 25, 30);
+        ctx.fillText('❤️', canvasSize.width - 15 - (score.lives - 1 - i) * 28, 32);
       }
 
       // Draw progress bar
@@ -552,30 +666,71 @@ function App() {
         ctx.strokeStyle = COLORS.ANSWER_BORDER;
         ctx.lineWidth = 2;
 
-        const bx = block.x - GAME_CONFIG.ANSWER_BLOCK_WIDTH / 2;
+        const bx = block.x - answerBlockWidth / 2;
         const by = block.y - GAME_CONFIG.ANSWER_BLOCK_HEIGHT / 2;
 
         ctx.beginPath();
-        ctx.roundRect(bx, by, GAME_CONFIG.ANSWER_BLOCK_WIDTH, GAME_CONFIG.ANSWER_BLOCK_HEIGHT, 8);
+        ctx.roundRect(bx, by, answerBlockWidth, GAME_CONFIG.ANSWER_BLOCK_HEIGHT, 8);
         ctx.fill();
         ctx.stroke();
 
-        // Eyes (alien style)
-        ctx.fillStyle = COLORS.PRIMARY_GREEN;
-        ctx.beginPath();
-        ctx.arc(block.x - 20, by - 3, 6, 0, Math.PI * 2);
-        ctx.arc(block.x + 20, by - 3, 6, 0, Math.PI * 2);
-        ctx.fill();
+        // Eyes (alien style) - scale positions based on block width
+        const eyeOffset = answerBlockWidth * 0.2;
+        const eyeY = by - 4;
 
-        // Antennae
+        // Simple blinking based on time and block id hash
+        const blockHash = block.id.charCodeAt(block.id.length - 1);
+        const blinkCycle = (Date.now() + blockHash * 100) % 3000;
+        const isBlinking = blinkCycle < 150;
+
+        ctx.fillStyle = COLORS.PRIMARY_GREEN;
+        ctx.shadowColor = COLORS.PRIMARY_GREEN;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        if (isBlinking) {
+          // Closed eyes (thin lines)
+          ctx.moveTo(block.x - eyeOffset - 6, eyeY);
+          ctx.lineTo(block.x - eyeOffset + 6, eyeY);
+          ctx.moveTo(block.x + eyeOffset - 6, eyeY);
+          ctx.lineTo(block.x + eyeOffset + 6, eyeY);
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = COLORS.PRIMARY_GREEN;
+          ctx.stroke();
+        } else {
+          // Open eyes (larger circles)
+          ctx.arc(block.x - eyeOffset, eyeY, 8, 0, Math.PI * 2);
+          ctx.arc(block.x + eyeOffset, eyeY, 8, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Pupils
+          ctx.fillStyle = '#000';
+          ctx.shadowBlur = 0;
+          ctx.beginPath();
+          ctx.arc(block.x - eyeOffset + 2, eyeY, 3, 0, Math.PI * 2);
+          ctx.arc(block.x + eyeOffset + 2, eyeY, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+
+        // Antennae with glowing tips
         ctx.strokeStyle = COLORS.PRIMARY_PURPLE;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(block.x - 20, by - 9);
-        ctx.lineTo(block.x - 20, by - 18);
-        ctx.moveTo(block.x + 20, by - 9);
-        ctx.lineTo(block.x + 20, by - 18);
+        ctx.moveTo(block.x - eyeOffset, by - 12);
+        ctx.lineTo(block.x - eyeOffset, by - 22);
+        ctx.moveTo(block.x + eyeOffset, by - 12);
+        ctx.lineTo(block.x + eyeOffset, by - 22);
         ctx.stroke();
+
+        // Glowing antenna bulbs
+        ctx.fillStyle = COLORS.PRIMARY_PURPLE;
+        ctx.shadowColor = COLORS.PRIMARY_PURPLE;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(block.x - eyeOffset, by - 24, 4, 0, Math.PI * 2);
+        ctx.arc(block.x + eyeOffset, by - 24, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
 
         // Answer value - adjust font size based on content length
         const valueStr = String(block.value);
@@ -590,6 +745,16 @@ function App() {
         ctx.textBaseline = 'middle';
         ctx.fillText(valueStr, block.x, block.y);
       });
+
+      // Draw particles
+      particles.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
 
       // Draw projectile
       if (projectile?.active) {
@@ -644,12 +809,35 @@ function App() {
       ctx.fillRect(starshipX + 12, shipY + 15, 6, 10);
       ctx.shadowBlur = 0;
 
-      // Draw math problem
+      // Draw math problem area
       ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
       ctx.fillRect(0, canvasSize.height - 60, canvasSize.width, 60);
 
+      // Draw timer bar above problem area
+      const timerBarHeight = 6;
+      const timerBarY = canvasSize.height - 60 - timerBarHeight;
+
+      // Timer background
+      ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
+      ctx.fillRect(0, timerBarY, canvasSize.width, timerBarHeight);
+
+      // Timer fill - color changes based on time remaining
+      let timerColor = COLORS.PRIMARY_GREEN;
+      if (timeRemaining < 0.3) {
+        timerColor = COLORS.WARNING_RED;
+      } else if (timeRemaining < 0.6) {
+        timerColor = COLORS.WARNING_ORANGE;
+      }
+
+      ctx.fillStyle = timerColor;
+      ctx.shadowColor = timerColor;
+      ctx.shadowBlur = 8;
+      ctx.fillRect(0, timerBarY, canvasSize.width * timeRemaining, timerBarHeight);
+      ctx.shadowBlur = 0;
+
+      // Decorative line
       ctx.fillStyle = COLORS.PRIMARY_PURPLE;
-      ctx.fillRect(0, canvasSize.height - 60, canvasSize.width, 3);
+      ctx.fillRect(0, canvasSize.height - 60, canvasSize.width, 2);
 
       if (currentProblem) {
         ctx.fillStyle = COLORS.TEXT_WHITE;
@@ -726,11 +914,48 @@ function App() {
         ctx.font = '18px Arial';
         ctx.fillText('Speed increasing...', canvasSize.width / 2, canvasSize.height / 2 + 70);
       }
+
+      // Skip hint
+      ctx.fillStyle = COLORS.TEXT_GRAY;
+      ctx.font = '14px Arial';
+      ctx.fillText('Tap or press SPACE to continue', canvasSize.width / 2, canvasSize.height / 2 + 120);
     }
-  }, [canvasSize, gameState, score, currentProblem, answerBlocks, projectile, starshipX, lastHitResult, levelConfig]);
+
+    // Countdown overlay
+    if (gameState === 'COUNTDOWN') {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
+
+      ctx.fillStyle = COLORS.PRIMARY_BLUE;
+      ctx.shadowColor = COLORS.PRIMARY_BLUE;
+      ctx.shadowBlur = 30;
+      ctx.font = 'bold 120px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const displayText = countdownNumber > 0 ? countdownNumber.toString() : 'GO!';
+      const displayColor = countdownNumber > 0 ? COLORS.PRIMARY_BLUE : COLORS.PRIMARY_GREEN;
+
+      ctx.fillStyle = displayColor;
+      ctx.shadowColor = displayColor;
+      ctx.fillText(displayText, canvasSize.width / 2, canvasSize.height / 2);
+      ctx.shadowBlur = 0;
+
+      // Subtitle
+      ctx.fillStyle = COLORS.TEXT_WHITE;
+      ctx.font = '18px Arial';
+      ctx.fillText('Get Ready!', canvasSize.width / 2, canvasSize.height / 2 + 80);
+    }
+  }, [canvasSize, gameState, score, currentProblem, answerBlocks, projectile, starshipX, lastHitResult, levelConfig, timeRemaining, countdownNumber, answerBlockWidth, particles]);
 
   // Handle canvas click (desktop only)
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Skip level up on click
+    if (gameState === 'LEVEL_UP') {
+      skipLevelUp();
+      return;
+    }
+
     if (gameState !== 'PLAYING' || isTouchDevice) return;
 
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -788,6 +1013,13 @@ function App() {
 
   return (
     <>
+      {/* Landscape Warning Overlay */}
+      <div className="landscape-warning">
+        <div className="warning-icon">📱</div>
+        <h2>Please Rotate Your Device</h2>
+        <p>Math Space Invaders works best in portrait mode</p>
+      </div>
+
       {/* Fixed Top User Bar - OUTSIDE app-container to avoid iOS Safari stacking issues */}
       {authUser && (
         <div className="user-top-bar">
@@ -818,6 +1050,11 @@ function App() {
         />
       )}
 
+      {/* Settings Modal - OUTSIDE app-container */}
+      {showSettings && (
+        <Settings onClose={() => setShowSettings(false)} />
+      )}
+
       <div className="app-container">
 
       {gameState === 'MENU' && (
@@ -833,6 +1070,15 @@ function App() {
           <div className="rocket-icon">🚀</div>
           <button className="start-button" onClick={startGame}>
             ▶ START GAME
+          </button>
+          <button className="leaderboard-btn" onClick={() => {
+            setShowLeaderboard(true);
+            trackLeaderboardOpen('menu');
+          }}>
+            🏆 LEADERBOARD
+          </button>
+          <button className="settings-btn" onClick={() => setShowSettings(true)}>
+            ⚙️ SETTINGS
           </button>
           <div className="instructions">
             <h3>HOW TO PLAY</h3>
@@ -875,13 +1121,19 @@ function App() {
           <button className="play-again-button" onClick={startGame}>
             🔄 PLAY AGAIN
           </button>
+          <button className="leaderboard-btn secondary" onClick={() => {
+            setShowLeaderboard(true);
+            trackLeaderboardOpen('game_over');
+          }}>
+            🏆 VIEW LEADERBOARD
+          </button>
           <button className="menu-button" onClick={() => setGameState('MENU')}>
             🏠 MAIN MENU
           </button>
         </div>
       )}
 
-      {(gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'LEVEL_UP') && (
+      {(gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'LEVEL_UP' || gameState === 'COUNTDOWN') && (
         <div className="game-container">
           <canvas
             ref={canvasRef}
