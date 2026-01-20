@@ -114,7 +114,7 @@ export async function createTeamWithUniqueSlug(params: {
       creatorId,
       memberCount: 1,
       isPublic,
-      passwordHash,
+      ...(passwordHash && { passwordHash }), // Only include if defined
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
