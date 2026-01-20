@@ -60,6 +60,7 @@
 
 .player-cell {
   min-width: 150px;
+  text-align: left;
 }
 
 .score-cell,

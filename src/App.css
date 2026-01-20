@@ -1684,18 +1684,11 @@ input:focus-visible {
   }
 }
 
-/* App Navigation */
-.app-nav {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 999;
-}
+/* App Navigation - removed, now using .user-actions in .user-top-bar */
 
-/* Ensure nav doesn't overlap game canvas on small screens */
-@media (max-width: 600px) {
-  .app-nav {
-    top: 10px;
-    right: 10px;
-  }
+/* User actions container (right side of user-top-bar) */
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }

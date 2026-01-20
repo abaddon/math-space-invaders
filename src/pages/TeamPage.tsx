@@ -209,25 +209,25 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
           </p>
           <p>Members: {currentTeam.memberCount}</p>
 
-          <button
-            onClick={() => setView('game')}
-            className="start-button"
-            style={{ marginBottom: '10px' }}
-          >
-            🎮 Play for {currentTeam.name}
-          </button>
+          <div className="menu-buttons-container">
+            <button
+              onClick={() => setView('game')}
+              className="start-button"
+            >
+              🎮 Play for {currentTeam.name}
+            </button>
 
-          <button
-            onClick={() => setView('leaderboard')}
-            className="start-button"
-            style={{ marginBottom: '10px' }}
-          >
-            🏆 View Leaderboard
-          </button>
+            <button
+              onClick={() => setView('leaderboard')}
+              className="start-button"
+            >
+              🏆 View Leaderboard
+            </button>
 
-          <Link to="/" className="start-button" style={{ textDecoration: 'none', display: 'inline-block' }}>
-            🏠 Home
-          </Link>
+            <Link to="/" className="start-button" style={{ textDecoration: 'none' }}>
+              🏠 Home
+            </Link>
+          </div>
         </div>
       </div>
     );

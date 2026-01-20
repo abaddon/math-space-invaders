@@ -5,6 +5,7 @@ import { GAME_CONFIG, COLORS } from '../constants';
 import { generateMathProblem, generateAnswerBlocks, getLevelConfig, calculateFallSpeed } from '../mathGenerator';
 import { Leaderboard } from './Leaderboard';
 import { Settings } from './Settings';
+import { MyTeamsDropdown } from './MyTeamsDropdown';
 import { updatePlayerStats, updateTeamLeaderboard } from '../leaderboardService';
 import { getTierDescription, isNewTier, getTierNumber } from '../utils/levelUtils';
 import { playSound } from '../services/audioService';
@@ -1059,9 +1060,12 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
             🏆 Leaderboard
           </button>
         </div>
-        <button className="logout-btn" onClick={onLogout} title="Logout">
-          🚪 Logout
-        </button>
+        <div className="user-actions">
+          <MyTeamsDropdown />
+          <button className="logout-btn" onClick={onLogout} title="Logout">
+            🚪 Logout
+          </button>
+        </div>
       </div>
 
       {/* Leaderboard Modal - OUTSIDE app-container */}

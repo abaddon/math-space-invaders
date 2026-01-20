@@ -4,7 +4,6 @@ import type { AuthUser, PlayerProfile, Team } from './types';
 import { AuthScreen } from './components/AuthScreen';
 import { Game } from './components/Game';
 import CreateTeamModal from './components/CreateTeamModal';
-import { MyTeamsDropdown } from './components/MyTeamsDropdown';
 import { TeamProvider, useTeam } from './contexts/TeamContext';
 import { TeamPage } from './pages/TeamPage';
 import { getSession, validateSession, signOut } from './authService';
@@ -36,11 +35,6 @@ function AppContent({ authUser, currentPlayer, appScreen, handlePlayerUpdate, ha
 
   return (
     <>
-      {authUser && (
-        <nav className="app-nav">
-          <MyTeamsDropdown />
-        </nav>
-      )}
       <Routes>
         <Route path="/" element={
           appScreen === 'AUTH' ? (
