@@ -12,12 +12,10 @@ import {
   serverTimestamp,
   Timestamp,
   increment,
-  runTransaction,
   type FieldValue
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Team, TeamMembership, TeamRole } from '../types';
-import { nanoid } from 'nanoid';
 
 const TEAMS_COLLECTION = 'teams';
 const TEAM_MEMBERSHIPS_COLLECTION = 'teamMemberships';
@@ -86,76 +84,82 @@ export async function createTeamWithUniqueSlug(params: {
     passwordHash = await hashPassword(password);
   }
 
+  // Check if slug already exists (outside transaction to avoid permission issues)
   try {
-    // Use transaction to check uniqueness and create team atomically
-    const result = await runTransaction(db, async (transaction) => {
-      // Check if slug already exists
-      const teamsRef = collection(db, TEAMS_COLLECTION);
-      const q = query(teamsRef, where('slugLower', '==', slugLower));
-      const querySnapshot = await getDocs(q);
+    const teamsRef = collection(db, TEAMS_COLLECTION);
+    const q = query(teamsRef, where('slugLower', '==', slugLower));
+    const querySnapshot = await getDocs(q);
 
-      if (!querySnapshot.empty) {
-        throw new Error('SLUG_TAKEN');
-      }
+    if (!querySnapshot.empty) {
+      throw new Error('Team name already taken, please choose a different name');
+    }
+  } catch (error) {
+    // If query fails, continue - let the setDoc handle conflicts
+    console.warn('Could not check for existing team:', error);
+  }
 
-      // Generate team ID
-      const teamId = `team_${Date.now()}_${nanoid(8)}`;
+  try {
+    // Generate team ID using slug as base for predictable conflicts
+    const teamId = `team_${slugLower}`;
 
-      // Create team document
-      const teamData: Omit<Team, 'createdAt' | 'updatedAt'> & {
-        createdAt: FieldValue;
-        updatedAt: FieldValue;
-      } = {
-        id: teamId,
-        name: name.trim(),
-        slug,
-        slugLower,
-        creatorId,
-        memberCount: 1,
-        isPublic,
-        passwordHash,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      };
+    // Create team document
+    const teamData: Omit<Team, 'createdAt' | 'updatedAt'> & {
+      createdAt: FieldValue;
+      updatedAt: FieldValue;
+    } = {
+      id: teamId,
+      name: name.trim(),
+      slug,
+      slugLower,
+      creatorId,
+      memberCount: 1,
+      isPublic,
+      passwordHash,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
 
-      const teamRef = doc(db, TEAMS_COLLECTION, teamId);
-      transaction.set(teamRef, teamData);
+    const teamRef = doc(db, TEAMS_COLLECTION, teamId);
 
-      // Create creator's membership
-      const membershipId = `${teamId}_${creatorId}`;
-      const membershipData: Omit<TeamMembership, 'joinedAt'> & {
-        joinedAt: FieldValue;
-      } = {
-        id: membershipId,
-        teamId,
-        playerId: creatorId,
-        role: 'creator' as TeamRole,
-        teamName: name.trim(),
-        teamSlug: slug,
-        playerNickname: creatorNickname,
-        joinedAt: serverTimestamp(),
-      };
+    // Check if document already exists
+    const existingTeam = await getDoc(teamRef);
+    if (existingTeam.exists()) {
+      throw new Error('Team name already taken, please choose a different name');
+    }
 
-      const membershipRef = doc(db, TEAM_MEMBERSHIPS_COLLECTION, membershipId);
-      transaction.set(membershipRef, membershipData);
+    await setDoc(teamRef, teamData);
 
-      // Return team data for response
-      return teamData;
-    });
+    // Create creator's membership
+    const membershipId = `${teamId}_${creatorId}`;
+    const membershipData: Omit<TeamMembership, 'joinedAt'> & {
+      joinedAt: FieldValue;
+    } = {
+      id: membershipId,
+      teamId,
+      playerId: creatorId,
+      role: 'creator' as TeamRole,
+      teamName: name.trim(),
+      teamSlug: slug,
+      playerNickname: creatorNickname,
+      joinedAt: serverTimestamp(),
+    };
+
+    const membershipRef = doc(db, TEAM_MEMBERSHIPS_COLLECTION, membershipId);
+    await setDoc(membershipRef, membershipData);
 
     // Return created team with current timestamp
     const now = new Date();
     return {
-      ...result,
+      ...teamData,
       createdAt: now,
       updatedAt: now,
     };
   } catch (error) {
-    if (error instanceof Error && error.message === 'SLUG_TAKEN') {
-      throw new Error('Team name already taken, please choose a different name');
+    if (error instanceof Error && error.message.includes('already taken')) {
+      throw error;
     }
     console.error('Create team error:', error);
-    throw error;
+    throw new Error('Failed to create team. Please try again.');
   }
 }
 

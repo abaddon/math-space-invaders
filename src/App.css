@@ -798,6 +798,24 @@ body:has(.user-top-bar) .game-over-screen {
   margin-top: 20px;
 }
 
+.create-team-btn {
+  background: transparent;
+  color: #00ff88;
+  border: 2px solid #00ff88;
+  padding: 12px 30px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.create-team-btn:hover {
+  background: #00ff88;
+  color: #0a0a1a;
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+}
+
 .leaderboard-btn {
   background: transparent;
   color: #b44aff;
