@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Math Space Invaders</title>
+    <script>
+      // GitHub Pages SPA redirect
+      // Stores the path in sessionStorage, then redirects to root
+      // main.tsx reads this and uses history.replaceState to restore the URL
+      const path = window.location.pathname + window.location.search + window.location.hash;
+      sessionStorage.setItem('redirect', path);
+      window.location.replace('/math-space-invaders/');
+    </script>
+  </head>
+  <body>
+    <p>Redirecting...</p>
+  </body>
+</html>
