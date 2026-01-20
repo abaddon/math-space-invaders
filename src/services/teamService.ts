@@ -8,7 +8,6 @@ import {
   updateDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
   Timestamp,
   increment,
@@ -283,8 +282,9 @@ export async function getMyTeams(playerId: string): Promise<TeamMembership[]> {
     const membershipsRef = collection(db, TEAM_MEMBERSHIPS_COLLECTION);
     const q = query(
       membershipsRef,
-      where('playerId', '==', playerId),
-      orderBy('joinedAt', 'desc')
+      where('playerId', '==', playerId)
+      // TODO: Add orderBy('joinedAt', 'desc') once composite index is created
+      // See firestore.indexes.json for required index definition
     );
 
     const querySnapshot = await getDocs(q);
@@ -303,6 +303,9 @@ export async function getMyTeams(playerId: string): Promise<TeamMembership[]> {
         joinedAt: data.joinedAt instanceof Timestamp ? data.joinedAt.toDate() : new Date(),
       });
     });
+
+    // Client-side sort by joinedAt desc (until Firestore index is created)
+    memberships.sort((a, b) => b.joinedAt.getTime() - a.joinedAt.getTime());
 
     return memberships;
   } catch (error) {
