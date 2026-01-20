@@ -4,6 +4,7 @@ import type { AuthUser, PlayerProfile, Team } from './types';
 import { AuthScreen } from './components/AuthScreen';
 import { Game } from './components/Game';
 import CreateTeamModal from './components/CreateTeamModal';
+import { MyTeamsDropdown } from './components/MyTeamsDropdown';
 import { TeamProvider } from './contexts/TeamContext';
 import { TeamPage } from './pages/TeamPage';
 import { getSession, validateSession, signOut } from './authService';
@@ -109,6 +110,11 @@ function App() {
   // Wrap with TeamProvider and add Routes
   return (
     <TeamProvider>
+      {!isLoadingAuth && authUser && (
+        <nav className="app-nav">
+          <MyTeamsDropdown />
+        </nav>
+      )}
       <Routes>
         <Route path="/" element={
           appScreen === 'AUTH' ? (
@@ -136,7 +142,18 @@ function App() {
             </>
           )
         } />
-        <Route path="/team/:slug" element={<TeamPage />} />
+        <Route
+          path="/team/:slug"
+          element={
+            <TeamPage
+              authUser={authUser}
+              currentPlayer={currentPlayer}
+              onPlayerUpdate={handlePlayerUpdate}
+              onLogout={handleLogout}
+              onOpenCreateTeam={() => setShowCreateModal(true)}
+            />
+          }
+        />
       </Routes>
     </TeamProvider>
   );

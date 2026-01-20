@@ -1683,3 +1683,19 @@ input:focus-visible {
     animation: none;
   }
 }
+
+/* App Navigation */
+.app-nav {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999;
+}
+
+/* Ensure nav doesn't overlap game canvas on small screens */
+@media (max-width: 600px) {
+  .app-nav {
+    top: 10px;
+    right: 10px;
+  }
+}
