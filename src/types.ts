@@ -129,3 +129,49 @@ export interface MetricConversion {
   toUnit: string;
   factor: number;
 }
+
+// Team Types (v1-teams milestone)
+
+/** Team role in membership */
+export type TeamRole = 'creator' | 'member';
+
+/** Team visibility setting */
+export type TeamVisibility = 'public' | 'private';
+
+/** Team entity - stored in /teams/{teamId} */
+export interface Team {
+  id: string;
+  name: string;
+  slug: string;           // URL-safe identifier (e.g., "math-wizards")
+  slugLower: string;      // Lowercase for case-insensitive lookup
+  creatorId: string;      // Player ID of team creator
+  memberCount: number;    // Denormalized count
+  isPublic: boolean;      // true = anyone can join, false = password required
+  passwordHash?: string;  // SHA-256 hash, only if isPublic = false
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Team membership - stored in /teamMemberships/{teamId}_{playerId} */
+export interface TeamMembership {
+  id: string;             // Composite: {teamId}_{playerId}
+  teamId: string;
+  playerId: string;
+  role: TeamRole;
+  joinedAt: Date;
+  // Denormalized fields for efficient queries
+  teamName: string;
+  teamSlug: string;
+  playerNickname: string;
+}
+
+/** Team leaderboard entry - stored in /teamLeaderboard/{teamId}_{playerId} */
+export interface TeamLeaderboardEntry {
+  id: string;             // Composite: {teamId}_{playerId}
+  teamId: string;
+  playerId: string;
+  nickname: string;
+  score: number;
+  level: number;
+  achievedAt: Date;
+}
