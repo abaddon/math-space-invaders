@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import type { AuthUser, PlayerProfile } from './types';
+import type { AuthUser, PlayerProfile, Team } from './types';
 import { AuthScreen } from './components/AuthScreen';
 import { Game } from './components/Game';
+import CreateTeamModal from './components/CreateTeamModal';
 import { TeamProvider } from './contexts/TeamContext';
 import { TeamPage } from './pages/TeamPage';
 import { getSession, validateSession, signOut } from './authService';
@@ -18,6 +19,9 @@ function App() {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<PlayerProfile | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+
+  // Team creation modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Initialize analytics
   useEffect(() => {
@@ -83,6 +87,12 @@ function App() {
     setCurrentPlayer(player);
   };
 
+  // Handle team creation success
+  const handleTeamCreated = (team: Team) => {
+    console.log('Team created:', team);
+    // Modal will handle showing the shareable link
+  };
+
   // Show loading screen while checking auth
   if (isLoadingAuth) {
     return (
@@ -107,12 +117,23 @@ function App() {
               <AuthScreen onAuthSuccess={handleAuthSuccess} />
             </div>
           ) : (
-            <Game
-              authUser={authUser!}
-              currentPlayer={currentPlayer}
-              onPlayerUpdate={handlePlayerUpdate}
-              onLogout={handleLogout}
-            />
+            <>
+              <Game
+                authUser={authUser!}
+                currentPlayer={currentPlayer}
+                onPlayerUpdate={handlePlayerUpdate}
+                onLogout={handleLogout}
+                onOpenCreateTeam={() => setShowCreateModal(true)}
+              />
+              {authUser && (
+                <CreateTeamModal
+                  isOpen={showCreateModal}
+                  onClose={() => setShowCreateModal(false)}
+                  onSuccess={handleTeamCreated}
+                  currentUser={authUser}
+                />
+              )}
+            </>
           )
         } />
         <Route path="/team/:slug" element={<TeamPage />} />

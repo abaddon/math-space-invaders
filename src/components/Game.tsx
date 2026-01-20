@@ -27,9 +27,10 @@ interface GameProps {
   currentPlayer: PlayerProfile | null;
   onPlayerUpdate: (player: PlayerProfile) => void;
   onLogout: () => void;
+  onOpenCreateTeam: () => void;
 }
 
-export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout }: GameProps) {
+export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpenCreateTeam }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<GameState>('MENU');
   const [score, setScore] = useState<GameScore>({
@@ -1074,6 +1075,9 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout }: Game
             ▶ START GAME
           </button>
           <div className="menu-buttons-container">
+            <button className="create-team-btn" onClick={onOpenCreateTeam}>
+              👥 CREATE TEAM
+            </button>
             <button className="leaderboard-btn" onClick={() => {
               setShowLeaderboard(true);
               trackLeaderboardOpen('menu');

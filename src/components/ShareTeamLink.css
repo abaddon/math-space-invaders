@@ -1,0 +1,93 @@
+.share-team-link {
+  text-align: center;
+  padding: 20px;
+}
+
+.share-team-link h3 {
+  color: var(--primary-green);
+  margin: 0 0 10px 0;
+  font-size: 20px;
+}
+
+.share-team-link .team-name {
+  color: var(--primary-blue);
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0 0 20px 0;
+}
+
+.link-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.link-container label {
+  color: var(--text-white);
+  font-size: 14px;
+  text-align: left;
+}
+
+.link-input {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--primary-purple);
+  border-radius: 8px;
+  color: var(--text-white);
+  font-size: 13px;
+  font-family: monospace;
+  text-align: center;
+  cursor: text;
+  user-select: all;
+}
+
+.link-input:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.copy-button {
+  padding: 12px 20px;
+  background: var(--primary-green);
+  color: var(--space-black);
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-button:hover {
+  background: #00cc6a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 255, 136, 0.3);
+}
+
+.copy-button:active {
+  transform: translateY(0);
+}
+
+.copy-button.copied {
+  background: var(--primary-blue);
+  color: var(--text-white);
+}
+
+.warning-text {
+  color: var(--warning-orange);
+  font-size: 13px;
+  margin: 15px 0;
+  padding: 10px;
+  background: rgba(255, 152, 0, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid var(--warning-orange);
+}
+
+.info-text {
+  color: var(--text-gray);
+  font-size: 13px;
+  margin: 10px 0 0 0;
+}
