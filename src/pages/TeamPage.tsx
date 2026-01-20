@@ -2,11 +2,25 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useTeam } from '../contexts/TeamContext';
 import { joinTeam } from '../services/teamService';
+import { Game } from '../components/Game';
+import { TeamLeaderboard } from '../components/TeamLeaderboard';
+import type { AuthUser, PlayerProfile } from '../types';
 
-export function TeamPage() {
+interface TeamPageProps {
+  authUser: AuthUser | null;
+  currentPlayer: PlayerProfile | null;
+  onPlayerUpdate: (player: PlayerProfile) => void;
+  onLogout: () => void;
+  onOpenCreateTeam: () => void;
+}
+
+export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpenCreateTeam }: TeamPageProps) {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
-  const { currentTeam, isLoadingCurrentTeam, setCurrentTeamBySlug, refreshMyTeams } = useTeam();
+  const { currentTeam, isLoadingCurrentTeam, setCurrentTeamBySlug, refreshMyTeams, myTeams } = useTeam();
+
+  // View state for members
+  const [view, setView] = useState<'landing' | 'game' | 'leaderboard'>('landing');
 
   // Join flow state
   const [isJoining, setIsJoining] = useState(false);
@@ -15,18 +29,6 @@ export function TeamPage() {
   const [manualPassword, setManualPassword] = useState('');
   const [hasAttemptedAutoJoin, setHasAttemptedAutoJoin] = useState(false);
 
-  // Get authenticated user from session storage (following authService pattern)
-  const getAuthUser = () => {
-    const sessionStr = sessionStorage.getItem('auth_session');
-    if (!sessionStr) return null;
-    try {
-      return JSON.parse(sessionStr);
-    } catch {
-      return null;
-    }
-  };
-
-  const authUser = getAuthUser();
   const passwordFromHash = location.hash.slice(1); // Remove # prefix
 
   useEffect(() => {
@@ -119,6 +121,9 @@ export function TeamPage() {
     );
   }
 
+  // Check if user is a member
+  const isMember = myTeams.some(m => m.teamId === currentTeam.id);
+
   // Show join success message
   if (joinSuccess) {
     return (
@@ -128,9 +133,12 @@ export function TeamPage() {
           <h1 className="title">✓ Joined!</h1>
           <p className="subtitle">You successfully joined {currentTeam.name}</p>
           <p>Members: {currentTeam.memberCount}</p>
-          <Link to="/" className="start-button" style={{ textDecoration: 'none' }}>
-            🎮 Play Game
-          </Link>
+          <button
+            onClick={() => setView('landing')}
+            className="start-button"
+          >
+            🎮 Continue
+          </button>
         </div>
       </div>
     );
@@ -155,7 +163,77 @@ export function TeamPage() {
     );
   }
 
-  // Authenticated user - show join form
+  // Authenticated user who is a member - show landing/game/leaderboard views
+  if (authUser && isMember) {
+    if (view === 'game') {
+      return (
+        <div className="app-container">
+          <div className="stars-bg"></div>
+          <Game
+            authUser={authUser}
+            currentPlayer={currentPlayer}
+            onPlayerUpdate={onPlayerUpdate}
+            onLogout={onLogout}
+            onOpenCreateTeam={onOpenCreateTeam}
+          />
+        </div>
+      );
+    }
+
+    if (view === 'leaderboard') {
+      return (
+        <div className="app-container">
+          <div className="stars-bg"></div>
+          <div className="menu-screen">
+            <TeamLeaderboard teamId={currentTeam.id} teamName={currentTeam.name} />
+            <button
+              onClick={() => setView('landing')}
+              className="start-button"
+              style={{ marginTop: '20px' }}
+            >
+              ← Back to Team
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Landing view - show team info with Play and View Leaderboard buttons
+    return (
+      <div className="app-container">
+        <div className="stars-bg"></div>
+        <div className="menu-screen">
+          <h1 className="title">{currentTeam.name}</h1>
+          <p className="subtitle">
+            {currentTeam.isPublic ? 'Public Team' : 'Private Team'}
+          </p>
+          <p>Members: {currentTeam.memberCount}</p>
+
+          <button
+            onClick={() => setView('game')}
+            className="start-button"
+            style={{ marginBottom: '10px' }}
+          >
+            🎮 Play for {currentTeam.name}
+          </button>
+
+          <button
+            onClick={() => setView('leaderboard')}
+            className="start-button"
+            style={{ marginBottom: '10px' }}
+          >
+            🏆 View Leaderboard
+          </button>
+
+          <Link to="/" className="start-button" style={{ textDecoration: 'none', display: 'inline-block' }}>
+            🏠 Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Authenticated user who is NOT a member - show join form
   return (
     <div className="app-container">
       <div className="stars-bg"></div>
