@@ -178,6 +178,7 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
             autoStart={true}
             onBackToTeam={() => setView('landing')}
             teamName={currentTeam.name}
+            teamId={currentTeam.id}
           />
         </div>
       );

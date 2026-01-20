@@ -33,13 +33,14 @@ interface GameProps {
   autoStart?: boolean; // Auto-start game without showing menu (for team play)
   onBackToTeam?: () => void; // Callback to return to team page (when playing in team context)
   teamName?: string; // Team name for display (when playing in team context)
+  teamId?: string; // Team ID for score submission (when playing in team context)
 }
 
-export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpenCreateTeam, autoStart = false, onBackToTeam, teamName }: GameProps) {
+export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpenCreateTeam, autoStart = false, onBackToTeam, teamName, teamId }: GameProps) {
   const { slug } = useParams<{ slug?: string }>();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<GameState>(autoStart ? 'PLAYING' : 'MENU');
-  const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
+  const [activeTeamId, setActiveTeamId] = useState<string | null>(teamId || null);
   const [score, setScore] = useState<GameScore>({
     score: 0,
     level: 1,
@@ -378,9 +379,9 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
 
   // Start game with countdown
   const startGame = useCallback(() => {
-    // Capture team context from URL at game start
-    const teamId = slug ? `team_${slug.toLowerCase()}` : null;
-    setActiveTeamId(teamId);
+    // Capture team context from URL at game start (or use prop if provided)
+    const contextTeamId = teamId || (slug ? `team_${slug.toLowerCase()}` : null);
+    setActiveTeamId(contextTeamId);
 
     setScore({
       score: 0,
