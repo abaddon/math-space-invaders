@@ -37,8 +37,21 @@ export function TeamLeaderboard({ teamId, teamName }: TeamLeaderboardProps) {
     setCursor(null);
     setHasMore(true);
     setIsInitialLoad(true);
-    loadMore();
-  }, [teamId]); // Only depend on teamId, not loadMore to avoid infinite loop
+    setIsLoading(false); // Reset loading state
+
+    // Load first page
+    const loadFirstPage = async () => {
+      setIsLoading(true);
+      const result = await getTeamLeaderboard(teamId, 25, undefined);
+      setEntries(result.entries); // Replace, not append
+      setCursor(result.lastDoc);
+      setHasMore(result.hasMore);
+      setIsLoading(false);
+      setIsInitialLoad(false);
+    };
+
+    loadFirstPage();
+  }, [teamId]); // Only depend on teamId
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
