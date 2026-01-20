@@ -176,28 +176,71 @@ export function Leaderboard({ currentPlayer, onClose, teamId, teamName }: Leader
 
         {currentPlayer && (
           <div className="your-stats">
-            <h3>Your Stats</h3>
+            <h3>{isTeamMode ? 'Your Team Stats' : 'Your Stats'}</h3>
             <div className="stats-grid">
-              <div className="stat-item">
-                <span className="stat-icon">🏆</span>
-                <span className="stat-value">{currentPlayer.highScore}</span>
-                <span className="stat-label">High Score</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-icon">⭐</span>
-                <span className="stat-value">{currentPlayer.bestLevel}</span>
-                <span className="stat-label">Best Level</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-icon">🎮</span>
-                <span className="stat-value">{currentPlayer.gamesPlayed}</span>
-                <span className="stat-label">Games</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-icon">✓</span>
-                <span className="stat-value">{currentPlayer.totalCorrectAnswers}</span>
-                <span className="stat-label">Correct</span>
-              </div>
+              {isTeamMode ? (
+                <>
+                  {/* Team-specific stats: find player's entry in team leaderboard */}
+                  {(() => {
+                    const myEntry = entries.find(e => {
+                      const entryPlayerId = (e as LeaderboardEntry).playerId || (e as TeamLeaderboardEntry).playerId;
+                      return currentPlayer.id === entryPlayerId;
+                    });
+                    const myRank = myEntry ? entries.findIndex(e => {
+                      const entryPlayerId = (e as LeaderboardEntry).playerId || (e as TeamLeaderboardEntry).playerId;
+                      return currentPlayer.id === entryPlayerId;
+                    }) + 1 : null;
+
+                    return (
+                      <>
+                        <div className="stat-item">
+                          <span className="stat-icon">🏆</span>
+                          <span className="stat-value">{myEntry?.score || 0}</span>
+                          <span className="stat-label">Team High Score</span>
+                        </div>
+                        <div className="stat-item">
+                          <span className="stat-icon">⭐</span>
+                          <span className="stat-value">{myEntry?.level || 0}</span>
+                          <span className="stat-label">Best Level</span>
+                        </div>
+                        <div className="stat-item">
+                          <span className="stat-icon">📊</span>
+                          <span className="stat-value">{myRank ? `#${myRank}` : 'N/A'}</span>
+                          <span className="stat-label">Team Rank</span>
+                        </div>
+                        <div className="stat-item">
+                          <span className="stat-icon">👥</span>
+                          <span className="stat-value">{entries.length}</span>
+                          <span className="stat-label">Team Members</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </>
+              ) : (
+                <>
+                  <div className="stat-item">
+                    <span className="stat-icon">🏆</span>
+                    <span className="stat-value">{currentPlayer.highScore}</span>
+                    <span className="stat-label">High Score</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-icon">⭐</span>
+                    <span className="stat-value">{currentPlayer.bestLevel}</span>
+                    <span className="stat-label">Best Level</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-icon">🎮</span>
+                    <span className="stat-value">{currentPlayer.gamesPlayed}</span>
+                    <span className="stat-label">Games</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-icon">✓</span>
+                    <span className="stat-value">{currentPlayer.totalCorrectAnswers}</span>
+                    <span className="stat-label">Correct</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
