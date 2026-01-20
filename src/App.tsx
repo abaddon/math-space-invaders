@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import type { AuthUser, PlayerProfile } from './types';
 import { AuthScreen } from './components/AuthScreen';
 import { Game } from './components/Game';
+import { TeamProvider } from './contexts/TeamContext';
+import { TeamPage } from './pages/TeamPage';
 import { getSession, validateSession, signOut } from './authService';
 import { getPlayerProfile } from './leaderboardService';
 import { initAnalytics, trackSessionRestored, trackLogout, trackScreenView } from './analytics';
@@ -93,24 +96,28 @@ function App() {
     );
   }
 
-  // Render Auth Screen
-  if (appScreen === 'AUTH') {
-    return (
-      <div className="app-container">
-        <div className="stars-bg"></div>
-        <AuthScreen onAuthSuccess={handleAuthSuccess} />
-      </div>
-    );
-  }
-
-  // Render Game (includes menu, playing, game over, etc.)
+  // Wrap with TeamProvider and add Routes
   return (
-    <Game
-      authUser={authUser!}
-      currentPlayer={currentPlayer}
-      onPlayerUpdate={handlePlayerUpdate}
-      onLogout={handleLogout}
-    />
+    <TeamProvider>
+      <Routes>
+        <Route path="/" element={
+          appScreen === 'AUTH' ? (
+            <div className="app-container">
+              <div className="stars-bg"></div>
+              <AuthScreen onAuthSuccess={handleAuthSuccess} />
+            </div>
+          ) : (
+            <Game
+              authUser={authUser!}
+              currentPlayer={currentPlayer}
+              onPlayerUpdate={handlePlayerUpdate}
+              onLogout={handleLogout}
+            />
+          )
+        } />
+        <Route path="/team/:slug" element={<TeamPage />} />
+      </Routes>
+    </TeamProvider>
   );
 }
 
