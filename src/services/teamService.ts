@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   Timestamp,
   increment,
+  runTransaction,
   type FieldValue
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -31,14 +32,13 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * Generate a URL-safe team slug from team name
+ * Transform team name to URL-safe slug (name-based, no random suffix)
  * @param name Team name
- * @returns URL-safe slug with nanoid suffix for uniqueness
- * @example "Math Wizards" -> "math-wizards-x7k9p2"
+ * @returns URL-safe slug based on team name
+ * @example "Math Wizards" -> "math-wizards"
  */
-export function generateTeamSlug(name: string): string {
-  // Convert to lowercase and replace spaces with hyphens
-  const base = name
+export function slugify(name: string): string {
+  return name
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')
@@ -48,97 +48,112 @@ export function generateTeamSlug(name: string): string {
     .replace(/-+/g, '-')
     // Remove leading/trailing hyphens
     .replace(/^-+|-+$/g, '');
-
-  // Append 6-character nanoid for uniqueness
-  const suffix = nanoid(6);
-  return `${base}-${suffix}`;
 }
 
 /**
- * Create a new team
+ * Create a new team with unique slug (using transaction for atomicity)
  * @param params Team creation parameters
  * @returns Created team object
+ * @throws Error with 'SLUG_TAKEN' message if team name already exists
  */
-export async function createTeam(params: {
+export async function createTeamWithUniqueSlug(params: {
   name: string;
   creatorId: string;
   creatorNickname: string;
   isPublic: boolean;
   password?: string;
 }): Promise<Team> {
+  const { name, creatorId, creatorNickname, isPublic, password } = params;
+
+  // Validate inputs
+  if (!name || name.trim().length === 0) {
+    throw new Error('Team name is required');
+  }
+  if (name.length < 3 || name.length > 50) {
+    throw new Error('Team name must be 3-50 characters');
+  }
+  if (!isPublic && !password) {
+    throw new Error('Password is required for private teams');
+  }
+
+  // Generate slug from name
+  const slug = slugify(name);
+  const slugLower = slug.toLowerCase();
+
+  // Hash password if provided
+  let passwordHash: string | undefined;
+  if (!isPublic && password) {
+    passwordHash = await hashPassword(password);
+  }
+
   try {
-    const { name, creatorId, creatorNickname, isPublic, password } = params;
+    // Use transaction to check uniqueness and create team atomically
+    const result = await runTransaction(db, async (transaction) => {
+      // Check if slug already exists
+      const teamsRef = collection(db, TEAMS_COLLECTION);
+      const q = query(teamsRef, where('slugLower', '==', slugLower));
+      const querySnapshot = await getDocs(q);
 
-    // Validate inputs
-    if (!name || name.trim().length === 0) {
-      throw new Error('Team name is required');
-    }
-    if (name.length < 3 || name.length > 50) {
-      throw new Error('Team name must be 3-50 characters');
-    }
-    if (!isPublic && !password) {
-      throw new Error('Password is required for private teams');
-    }
+      if (!querySnapshot.empty) {
+        throw new Error('SLUG_TAKEN');
+      }
 
-    // Generate unique slug
-    const slug = generateTeamSlug(name);
-    const slugLower = slug.toLowerCase();
+      // Generate team ID
+      const teamId = `team_${Date.now()}_${nanoid(8)}`;
 
-    // Generate team ID
-    const teamId = `team_${Date.now()}_${nanoid(8)}`;
+      // Create team document
+      const teamData: Omit<Team, 'createdAt' | 'updatedAt'> & {
+        createdAt: FieldValue;
+        updatedAt: FieldValue;
+      } = {
+        id: teamId,
+        name: name.trim(),
+        slug,
+        slugLower,
+        creatorId,
+        memberCount: 1,
+        isPublic,
+        passwordHash,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
 
-    // Hash password if provided
-    let passwordHash: string | undefined;
-    if (!isPublic && password) {
-      passwordHash = await hashPassword(password);
-    }
+      const teamRef = doc(db, TEAMS_COLLECTION, teamId);
+      transaction.set(teamRef, teamData);
 
-    // Create team document
-    const teamData: Omit<Team, 'createdAt' | 'updatedAt'> & {
-      createdAt: FieldValue;
-      updatedAt: FieldValue;
-    } = {
-      id: teamId,
-      name: name.trim(),
-      slug,
-      slugLower,
-      creatorId,
-      memberCount: 1,
-      isPublic,
-      passwordHash,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
+      // Create creator's membership
+      const membershipId = `${teamId}_${creatorId}`;
+      const membershipData: Omit<TeamMembership, 'joinedAt'> & {
+        joinedAt: FieldValue;
+      } = {
+        id: membershipId,
+        teamId,
+        playerId: creatorId,
+        role: 'creator' as TeamRole,
+        teamName: name.trim(),
+        teamSlug: slug,
+        playerNickname: creatorNickname,
+        joinedAt: serverTimestamp(),
+      };
 
-    const teamRef = doc(db, TEAMS_COLLECTION, teamId);
-    await setDoc(teamRef, teamData);
+      const membershipRef = doc(db, TEAM_MEMBERSHIPS_COLLECTION, membershipId);
+      transaction.set(membershipRef, membershipData);
 
-    // Create creator's membership
-    const membershipId = `${teamId}_${creatorId}`;
-    const membershipData: Omit<TeamMembership, 'joinedAt'> & {
-      joinedAt: FieldValue;
-    } = {
-      id: membershipId,
-      teamId,
-      playerId: creatorId,
-      role: 'creator' as TeamRole,
-      teamName: name.trim(),
-      teamSlug: slug,
-      playerNickname: creatorNickname,
-      joinedAt: serverTimestamp(),
-    };
-
-    const membershipRef = doc(db, TEAM_MEMBERSHIPS_COLLECTION, membershipId);
-    await setDoc(membershipRef, membershipData);
+      // Return team data for response
+      return teamData;
+    });
 
     // Return created team with current timestamp
     const now = new Date();
     return {
-      ...teamData,
+      ...result,
       createdAt: now,
       updatedAt: now,
     };
   } catch (error) {
+    if (error instanceof Error && error.message === 'SLUG_TAKEN') {
+      throw new Error('Team name already taken, please choose a different name');
+    }
     console.error('Create team error:', error);
     throw error;
   }
