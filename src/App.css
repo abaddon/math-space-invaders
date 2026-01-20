@@ -1039,9 +1039,8 @@ body:has(.user-top-bar) .game-over-screen {
 .col-player {
   font-weight: bold;
   color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  text-align: left;
+  vertical-align: middle;
 }
 
 .you-badge {
@@ -1051,6 +1050,7 @@ body:has(.user-top-bar) .game-over-screen {
   padding: 2px 6px;
   border-radius: 10px;
   font-weight: bold;
+  margin-left: 8px;
 }
 
 /* Load More Button */
