@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import type { GameState, GameScore, MathProblem, AnswerBlock, Projectile, PlayerProfile, AuthUser, LevelConfig, Particle } from '../types';
 import { GAME_CONFIG, COLORS } from '../constants';
 import { generateMathProblem, generateAnswerBlocks, getLevelConfig, calculateFallSpeed } from '../mathGenerator';
 import { Leaderboard } from './Leaderboard';
 import { Settings } from './Settings';
-import { updatePlayerStats } from '../leaderboardService';
+import { updatePlayerStats, updateTeamLeaderboard } from '../leaderboardService';
 import { getTierDescription, isNewTier, getTierNumber } from '../utils/levelUtils';
 import { playSound } from '../services/audioService';
 import {
@@ -31,8 +32,10 @@ interface GameProps {
 }
 
 export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpenCreateTeam }: GameProps) {
+  const { slug } = useParams<{ slug?: string }>();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<GameState>('MENU');
+  const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
   const [score, setScore] = useState<GameScore>({
     score: 0,
     level: 1,
@@ -108,12 +111,24 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
   // Save stats when game ends
   const saveGameStats = useCallback(async (finalScore: GameScore) => {
     try {
-      await updatePlayerStats(
-        authUser.playerId,
-        finalScore.score,
-        finalScore.level,
-        finalScore.score // correctAnswers = score in this game
-      );
+      if (activeTeamId) {
+        // Team play: submit to team leaderboard ONLY (not global)
+        await updateTeamLeaderboard(
+          activeTeamId,
+          authUser.playerId,
+          authUser.nickname,
+          finalScore.score,
+          finalScore.level
+        );
+      } else {
+        // Global play: submit to global leaderboard via updatePlayerStats
+        await updatePlayerStats(
+          authUser.playerId,
+          finalScore.score,
+          finalScore.level,
+          finalScore.score // correctAnswers = score in this game
+        );
+      }
       // Refresh player profile via parent callback
       const { getPlayerProfile } = await import('../leaderboardService');
       const updatedProfile = await getPlayerProfile(authUser.playerId);
@@ -123,7 +138,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
     } catch (error) {
       console.error('Failed to save game stats:', error);
     }
-  }, [authUser.playerId, onPlayerUpdate]);
+  }, [authUser.playerId, authUser.nickname, onPlayerUpdate, activeTeamId]);
 
   // Detect touch device
   useEffect(() => {
@@ -359,6 +374,10 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
 
   // Start game with countdown
   const startGame = useCallback(() => {
+    // Capture team context from URL at game start
+    const teamId = slug ? `team_${slug.toLowerCase()}` : null;
+    setActiveTeamId(teamId);
+
     setScore({
       score: 0,
       level: 1,
@@ -377,7 +396,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
     // Track game start
     trackGameStart(authUser.playerId);
     trackScreenView('game');
-  }, [canvasSize.width, authUser.playerId]);
+  }, [canvasSize.width, authUser.playerId, slug]);
 
   // Countdown effect
   useEffect(() => {
