@@ -5,7 +5,7 @@ import { AuthScreen } from './components/AuthScreen';
 import { Game } from './components/Game';
 import CreateTeamModal from './components/CreateTeamModal';
 import { MyTeamsDropdown } from './components/MyTeamsDropdown';
-import { TeamProvider } from './contexts/TeamContext';
+import { TeamProvider, useTeam } from './contexts/TeamContext';
 import { TeamPage } from './pages/TeamPage';
 import { getSession, validateSession, signOut } from './authService';
 import { getPlayerProfile } from './leaderboardService';
@@ -13,6 +13,77 @@ import { initAnalytics, trackSessionRestored, trackLogout, trackScreenView } fro
 import './App.css';
 
 type AppScreen = 'AUTH' | 'GAME';
+
+// Inner component that has access to TeamContext
+function AppContent({ authUser, currentPlayer, appScreen, handlePlayerUpdate, handleLogout, handleTeamCreated, showCreateModal, setShowCreateModal }: {
+  authUser: AuthUser | null;
+  currentPlayer: PlayerProfile | null;
+  appScreen: AppScreen;
+  handlePlayerUpdate: (player: PlayerProfile) => void;
+  handleLogout: () => void;
+  handleTeamCreated: (team: Team) => void;
+  showCreateModal: boolean;
+  setShowCreateModal: (show: boolean) => void;
+}) {
+  const { refreshMyTeams } = useTeam();
+
+  // Load teams when user authenticates
+  useEffect(() => {
+    if (authUser) {
+      refreshMyTeams(authUser.playerId);
+    }
+  }, [authUser, refreshMyTeams]);
+
+  return (
+    <>
+      {authUser && (
+        <nav className="app-nav">
+          <MyTeamsDropdown />
+        </nav>
+      )}
+      <Routes>
+        <Route path="/" element={
+          appScreen === 'AUTH' ? (
+            <div className="app-container">
+              <div className="stars-bg"></div>
+              <AuthScreen onAuthSuccess={() => {}} />
+            </div>
+          ) : (
+            <>
+              <Game
+                authUser={authUser!}
+                currentPlayer={currentPlayer}
+                onPlayerUpdate={handlePlayerUpdate}
+                onLogout={handleLogout}
+                onOpenCreateTeam={() => setShowCreateModal(true)}
+              />
+              {authUser && (
+                <CreateTeamModal
+                  isOpen={showCreateModal}
+                  onClose={() => setShowCreateModal(false)}
+                  onSuccess={handleTeamCreated}
+                  currentUser={authUser}
+                />
+              )}
+            </>
+          )
+        } />
+        <Route
+          path="/team/:slug"
+          element={
+            <TeamPage
+              authUser={authUser}
+              currentPlayer={currentPlayer}
+              onPlayerUpdate={handlePlayerUpdate}
+              onLogout={handleLogout}
+              onOpenCreateTeam={() => setShowCreateModal(true)}
+            />
+          }
+        />
+      </Routes>
+    </>
+  );
+}
 
 function App() {
   // Auth state
@@ -107,54 +178,26 @@ function App() {
     );
   }
 
-  // Wrap with TeamProvider and add Routes
+  // Wrap with TeamProvider
   return (
     <TeamProvider>
-      {!isLoadingAuth && authUser && (
-        <nav className="app-nav">
-          <MyTeamsDropdown />
-        </nav>
-      )}
-      <Routes>
-        <Route path="/" element={
-          appScreen === 'AUTH' ? (
-            <div className="app-container">
-              <div className="stars-bg"></div>
-              <AuthScreen onAuthSuccess={handleAuthSuccess} />
-            </div>
-          ) : (
-            <>
-              <Game
-                authUser={authUser!}
-                currentPlayer={currentPlayer}
-                onPlayerUpdate={handlePlayerUpdate}
-                onLogout={handleLogout}
-                onOpenCreateTeam={() => setShowCreateModal(true)}
-              />
-              {authUser && (
-                <CreateTeamModal
-                  isOpen={showCreateModal}
-                  onClose={() => setShowCreateModal(false)}
-                  onSuccess={handleTeamCreated}
-                  currentUser={authUser}
-                />
-              )}
-            </>
-          )
-        } />
-        <Route
-          path="/team/:slug"
-          element={
-            <TeamPage
-              authUser={authUser}
-              currentPlayer={currentPlayer}
-              onPlayerUpdate={handlePlayerUpdate}
-              onLogout={handleLogout}
-              onOpenCreateTeam={() => setShowCreateModal(true)}
-            />
-          }
+      {appScreen === 'AUTH' ? (
+        <div className="app-container">
+          <div className="stars-bg"></div>
+          <AuthScreen onAuthSuccess={handleAuthSuccess} />
+        </div>
+      ) : (
+        <AppContent
+          authUser={authUser}
+          currentPlayer={currentPlayer}
+          appScreen={appScreen}
+          handlePlayerUpdate={handlePlayerUpdate}
+          handleLogout={handleLogout}
+          handleTeamCreated={handleTeamCreated}
+          showCreateModal={showCreateModal}
+          setShowCreateModal={setShowCreateModal}
         />
-      </Routes>
+      )}
     </TeamProvider>
   );
 }
