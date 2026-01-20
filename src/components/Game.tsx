@@ -31,9 +31,11 @@ interface GameProps {
   onLogout: () => void;
   onOpenCreateTeam: () => void;
   autoStart?: boolean; // Auto-start game without showing menu (for team play)
+  onBackToTeam?: () => void; // Callback to return to team page (when playing in team context)
+  teamName?: string; // Team name for display (when playing in team context)
 }
 
-export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpenCreateTeam, autoStart = false }: GameProps) {
+export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpenCreateTeam, autoStart = false, onBackToTeam, teamName }: GameProps) {
   const { slug } = useParams<{ slug?: string }>();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<GameState>(autoStart ? 'PLAYING' : 'MENU');
@@ -1153,15 +1155,23 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
           <button className="play-again-button" onClick={startGame}>
             🔄 PLAY AGAIN
           </button>
-          <button className="leaderboard-btn secondary" onClick={() => {
-            setShowLeaderboard(true);
-            trackLeaderboardOpen('game_over');
-          }}>
-            🏆 VIEW LEADERBOARD
-          </button>
-          <button className="menu-button" onClick={() => setGameState('MENU')}>
-            🏠 MAIN MENU
-          </button>
+          {onBackToTeam ? (
+            <button className="menu-button" onClick={onBackToTeam}>
+              ← BACK TO {teamName?.toUpperCase() || 'TEAM'}
+            </button>
+          ) : (
+            <>
+              <button className="leaderboard-btn secondary" onClick={() => {
+                setShowLeaderboard(true);
+                trackLeaderboardOpen('game_over');
+              }}>
+                🏆 VIEW LEADERBOARD
+              </button>
+              <button className="menu-button" onClick={() => setGameState('MENU')}>
+                🏠 MAIN MENU
+              </button>
+            </>
+          )}
         </div>
       )}
 

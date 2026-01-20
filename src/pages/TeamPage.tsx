@@ -176,6 +176,8 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
             onLogout={onLogout}
             onOpenCreateTeam={onOpenCreateTeam}
             autoStart={true}
+            onBackToTeam={() => setView('landing')}
+            teamName={currentTeam.name}
           />
         </div>
       );
