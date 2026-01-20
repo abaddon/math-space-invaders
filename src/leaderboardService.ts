@@ -17,6 +17,7 @@ import type { PlayerProfile, LeaderboardEntry } from './types';
 
 const PLAYERS_COLLECTION = 'players';
 const LEADERBOARD_COLLECTION = 'leaderboard';
+const TEAM_LEADERBOARD_COLLECTION = 'teamLeaderboard';
 
 // Get player profile by ID
 export async function getPlayerProfile(playerId: string): Promise<PlayerProfile | null> {
@@ -108,4 +109,25 @@ export async function getLeaderboard(topN: number = 10): Promise<LeaderboardEntr
   });
 
   return entries;
+}
+
+// Update team leaderboard
+export async function updateTeamLeaderboard(
+  teamId: string,
+  playerId: string,
+  nickname: string,
+  score: number,
+  level: number
+): Promise<void> {
+  const teamLeaderboardRef = doc(db, TEAM_LEADERBOARD_COLLECTION, `${teamId}_${playerId}`);
+
+  await setDoc(teamLeaderboardRef, {
+    id: `${teamId}_${playerId}`,
+    teamId,
+    playerId,
+    nickname,
+    score,
+    level,
+    achievedAt: serverTimestamp()
+  });
 }
