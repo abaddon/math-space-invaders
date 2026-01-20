@@ -30,12 +30,13 @@ interface GameProps {
   onPlayerUpdate: (player: PlayerProfile) => void;
   onLogout: () => void;
   onOpenCreateTeam: () => void;
+  autoStart?: boolean; // Auto-start game without showing menu (for team play)
 }
 
-export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpenCreateTeam }: GameProps) {
+export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpenCreateTeam, autoStart = false }: GameProps) {
   const { slug } = useParams<{ slug?: string }>();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<GameState>('MENU');
+  const [gameState, setGameState] = useState<GameState>(autoStart ? 'PLAYING' : 'MENU');
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
   const [score, setScore] = useState<GameScore>({
     score: 0,

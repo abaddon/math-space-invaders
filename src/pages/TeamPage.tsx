@@ -175,6 +175,7 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
             onPlayerUpdate={onPlayerUpdate}
             onLogout={onLogout}
             onOpenCreateTeam={onOpenCreateTeam}
+            autoStart={true}
           />
         </div>
       );
