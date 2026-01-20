@@ -1,16 +1,96 @@
-import { useParams, Link } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useTeam } from '../contexts/TeamContext';
+import { joinTeam } from '../services/teamService';
 
 export function TeamPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { currentTeam, isLoadingCurrentTeam, setCurrentTeamBySlug } = useTeam();
+  const location = useLocation();
+  const { currentTeam, isLoadingCurrentTeam, setCurrentTeamBySlug, refreshMyTeams } = useTeam();
+
+  // Join flow state
+  const [isJoining, setIsJoining] = useState(false);
+  const [joinError, setJoinError] = useState('');
+  const [joinSuccess, setJoinSuccess] = useState(false);
+  const [manualPassword, setManualPassword] = useState('');
+  const [hasAttemptedAutoJoin, setHasAttemptedAutoJoin] = useState(false);
+
+  // Get authenticated user from session storage (following authService pattern)
+  const getAuthUser = () => {
+    const sessionStr = sessionStorage.getItem('auth_session');
+    if (!sessionStr) return null;
+    try {
+      return JSON.parse(sessionStr);
+    } catch {
+      return null;
+    }
+  };
+
+  const authUser = getAuthUser();
+  const passwordFromHash = location.hash.slice(1); // Remove # prefix
 
   useEffect(() => {
     if (slug) {
       setCurrentTeamBySlug(slug);
     }
   }, [slug, setCurrentTeamBySlug]);
+
+  // Auto-join when hash fragment password present
+  useEffect(() => {
+    const attemptAutoJoin = async () => {
+      if (!currentTeam || !authUser || !passwordFromHash || hasAttemptedAutoJoin || joinSuccess) {
+        return;
+      }
+
+      setHasAttemptedAutoJoin(true);
+      setIsJoining(true);
+      setJoinError('');
+
+      const result = await joinTeam({
+        teamId: currentTeam.id,
+        playerId: authUser.playerId,
+        playerNickname: authUser.nickname,
+        password: passwordFromHash,
+      });
+
+      setIsJoining(false);
+
+      if (result.success) {
+        setJoinSuccess(true);
+        // Refresh myTeams in context
+        await refreshMyTeams(authUser.playerId);
+      } else {
+        setJoinError(result.error || 'Failed to join team');
+      }
+    };
+
+    attemptAutoJoin();
+  }, [currentTeam, authUser, passwordFromHash, hasAttemptedAutoJoin, joinSuccess, refreshMyTeams]);
+
+  // Handle manual join (form submission)
+  const handleManualJoin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentTeam || !authUser) return;
+
+    setIsJoining(true);
+    setJoinError('');
+
+    const result = await joinTeam({
+      teamId: currentTeam.id,
+      playerId: authUser.playerId,
+      playerNickname: authUser.nickname,
+      password: currentTeam.isPublic ? undefined : manualPassword,
+    });
+
+    setIsJoining(false);
+
+    if (result.success) {
+      setJoinSuccess(true);
+      await refreshMyTeams(authUser.playerId);
+    } else {
+      setJoinError(result.error || 'Failed to join team');
+    }
+  };
 
   if (isLoadingCurrentTeam) {
     return (
@@ -39,16 +119,106 @@ export function TeamPage() {
     );
   }
 
-  // Placeholder - Phase 2 will add full team UI
+  // Show join success message
+  if (joinSuccess) {
+    return (
+      <div className="app-container">
+        <div className="stars-bg"></div>
+        <div className="menu-screen">
+          <h1 className="title">✓ Joined!</h1>
+          <p className="subtitle">You successfully joined {currentTeam.name}</p>
+          <p>Members: {currentTeam.memberCount}</p>
+          <Link to="/" className="start-button" style={{ textDecoration: 'none' }}>
+            🎮 Play Game
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Unauthenticated user - show preview with sign up prompt
+  if (!authUser) {
+    return (
+      <div className="app-container">
+        <div className="stars-bg"></div>
+        <div className="menu-screen">
+          <h1 className="title">{currentTeam.name}</h1>
+          <p className="subtitle">
+            {currentTeam.isPublic ? 'Public Team' : 'Private Team'}
+          </p>
+          <p>Members: {currentTeam.memberCount}</p>
+          <Link to="/" className="start-button" style={{ textDecoration: 'none' }}>
+            🚀 Sign up to join
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Authenticated user - show join form
   return (
     <div className="app-container">
       <div className="stars-bg"></div>
       <div className="menu-screen">
         <h1 className="title">{currentTeam.name}</h1>
-        <p className="subtitle">Team page coming soon!</p>
+        <p className="subtitle">
+          {currentTeam.isPublic ? 'Public Team' : 'Private Team'}
+        </p>
         <p>Members: {currentTeam.memberCount}</p>
-        <Link to="/" className="start-button" style={{ textDecoration: 'none' }}>
-          🎮 Play Game
+
+        {joinError && (
+          <div style={{
+            color: '#ff4757',
+            padding: '10px',
+            marginBottom: '15px',
+            background: 'rgba(255, 71, 87, 0.1)',
+            borderRadius: '8px',
+            border: '2px solid #ff4757'
+          }}>
+            {joinError}
+          </div>
+        )}
+
+        <form onSubmit={handleManualJoin} style={{ maxWidth: '400px', margin: '20px auto' }}>
+          {!currentTeam.isPublic && (
+            <div style={{ marginBottom: '15px' }}>
+              <label htmlFor="team-password" style={{ display: 'block', marginBottom: '8px', color: '#00ff88' }}>
+                Team Password:
+              </label>
+              <input
+                id="team-password"
+                type="password"
+                value={manualPassword}
+                onChange={(e) => setManualPassword(e.target.value)}
+                required={!currentTeam.isPublic}
+                placeholder="Enter team password"
+                disabled={isJoining}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '2px solid #00ff88',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isJoining}
+            className="start-button"
+            style={{ width: '100%', marginBottom: '10px' }}
+          >
+            {isJoining ? '⏳ Joining...' : '👥 Join Team'}
+          </button>
+        </form>
+
+        <Link to="/" className="start-button" style={{ textDecoration: 'none', display: 'inline-block', marginTop: '10px' }}>
+          🏠 Go Home
         </Link>
       </div>
     </div>
