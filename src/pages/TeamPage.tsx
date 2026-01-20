@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTeam } from '../contexts/TeamContext';
 import { joinTeam } from '../services/teamService';
 import { Game } from '../components/Game';
-import { TeamLeaderboard } from '../components/TeamLeaderboard';
+import { Leaderboard } from '../components/Leaderboard';
 import type { AuthUser, PlayerProfile } from '../types';
 
 interface TeamPageProps {
@@ -186,19 +186,12 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
 
     if (view === 'leaderboard') {
       return (
-        <div className="app-container">
-          <div className="stars-bg"></div>
-          <div className="menu-screen">
-            <TeamLeaderboard teamId={currentTeam.id} teamName={currentTeam.name} />
-            <button
-              onClick={() => setView('landing')}
-              className="start-button"
-              style={{ marginTop: '20px' }}
-            >
-              ← Back to Team
-            </button>
-          </div>
-        </div>
+        <Leaderboard
+          currentPlayer={currentPlayer}
+          onClose={() => setView('landing')}
+          teamId={currentTeam.id}
+          teamName={currentTeam.name}
+        />
       );
     }
 

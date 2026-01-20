@@ -1,57 +1,79 @@
-// Leaderboard Component
-import { useState, useEffect } from 'react';
-import type { LeaderboardEntry, PlayerProfile } from '../types';
-import { getLeaderboard } from '../leaderboardService';
+// Leaderboard Component - supports both global and team leaderboards
+import { useState, useEffect, useCallback } from 'react';
+import type { LeaderboardEntry, PlayerProfile, TeamLeaderboardEntry } from '../types';
+import { getLeaderboard, getTeamLeaderboard } from '../leaderboardService';
 import { trackLeaderboardClose, trackLeaderboardRetry } from '../analytics';
+import type { DocumentSnapshot } from 'firebase/firestore';
 
 interface LeaderboardProps {
   currentPlayer: PlayerProfile | null;
   onClose: () => void;
+  teamId?: string;  // If provided, show team leaderboard instead of global
+  teamName?: string; // Team name for display
 }
 
 const PAGE_SIZE = 10;
 
-export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+export function Leaderboard({ currentPlayer, onClose, teamId, teamName }: LeaderboardProps) {
+  const [entries, setEntries] = useState<LeaderboardEntry[] | TeamLeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentLimit, setCurrentLimit] = useState(PAGE_SIZE);
   const [hasMore, setHasMore] = useState(true);
+  const [cursor, setCursor] = useState<DocumentSnapshot | null>(null);
 
-  useEffect(() => {
-    loadLeaderboard(PAGE_SIZE);
-  }, []);
+  const isTeamMode = !!teamId;
 
-  const loadLeaderboard = async (limit: number) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await getLeaderboard(limit);
-      setEntries(data);
-      setHasMore(data.length >= limit);
-    } catch (err) {
-      console.error('Failed to load leaderboard:', err);
-      setError('Failed to load leaderboard. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
 
-  const loadMore = async () => {
     setIsLoadingMore(true);
-    const newLimit = currentLimit + PAGE_SIZE;
     try {
-      const data = await getLeaderboard(newLimit);
-      setEntries(data);
-      setCurrentLimit(newLimit);
-      setHasMore(data.length >= newLimit);
+      if (isTeamMode && teamId) {
+        const result = await getTeamLeaderboard(teamId, 25, cursor || undefined);
+        setEntries(prev => [...prev, ...result.entries]);
+        setCursor(result.lastDoc);
+        setHasMore(result.hasMore);
+      } else {
+        const newLimit = currentLimit + PAGE_SIZE;
+        const data = await getLeaderboard(newLimit);
+        setEntries(data);
+        setCurrentLimit(newLimit);
+        setHasMore(data.length >= newLimit);
+      }
     } catch (err) {
       console.error('Failed to load more:', err);
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [isTeamMode, teamId, cursor, hasMore, isLoadingMore, currentLimit]);
+
+  useEffect(() => {
+    const loadInitial = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        if (isTeamMode && teamId) {
+          const result = await getTeamLeaderboard(teamId, 25, undefined);
+          setEntries(result.entries);
+          setCursor(result.lastDoc);
+          setHasMore(result.hasMore);
+        } else {
+          const data = await getLeaderboard(PAGE_SIZE);
+          setEntries(data);
+          setHasMore(data.length >= PAGE_SIZE);
+        }
+      } catch (err) {
+        console.error('Failed to load leaderboard:', err);
+        setError('Failed to load leaderboard. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitial();
+  }, [isTeamMode, teamId]);
 
   const handleClose = () => {
     trackLeaderboardClose();
@@ -60,7 +82,12 @@ export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
 
   const handleRetry = () => {
     trackLeaderboardRetry();
-    loadLeaderboard(currentLimit);
+    // Retry by re-running the effect
+    setIsLoading(true);
+    setError(null);
+    setEntries([]);
+    setCursor(null);
+    setHasMore(true);
   };
 
   const getMedalEmoji = (rank: number): string => {
@@ -78,7 +105,9 @@ export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
       <div className="leaderboard-modal">
         <button className="close-btn" onClick={handleClose} aria-label="Close leaderboard">✕</button>
 
-        <h2 className="leaderboard-title">🏆 Global Leaderboard</h2>
+        <h2 className="leaderboard-title">
+          🏆 {isTeamMode ? `${teamName || 'Team'} Leaderboard` : 'Global Leaderboard'}
+        </h2>
 
         {isLoading ? (
           <div className="leaderboard-loading">
@@ -112,20 +141,25 @@ export function Leaderboard({ currentPlayer, onClose }: LeaderboardProps) {
                 </tr>
               </thead>
               <tbody>
-                {entries.map((entry, index) => (
-                  <tr
-                    key={entry.playerId}
-                    className={`leaderboard-row ${currentPlayer?.id === entry.playerId ? 'current-player' : ''} ${index < 3 ? 'top-three' : ''}`}
-                  >
-                    <td className="col-rank">{getMedalEmoji(index + 1)}</td>
-                    <td className="col-player">
-                      {entry.nickname}
-                      {currentPlayer?.id === entry.playerId && <span className="you-badge">YOU</span>}
-                    </td>
-                    <td className="col-score">{entry.score}</td>
-                    <td className="col-level">{entry.level}</td>
-                  </tr>
-                ))}
+                {entries.map((entry, index) => {
+                  // Handle both LeaderboardEntry (has playerId) and TeamLeaderboardEntry (has id)
+                  const entryKey = (entry as LeaderboardEntry).playerId || (entry as TeamLeaderboardEntry).id;
+                  const entryPlayerId = (entry as LeaderboardEntry).playerId || (entry as TeamLeaderboardEntry).playerId;
+                  return (
+                    <tr
+                      key={entryKey}
+                      className={`leaderboard-row ${currentPlayer?.id === entryPlayerId ? 'current-player' : ''} ${index < 3 ? 'top-three' : ''}`}
+                    >
+                      <td className="col-rank">{getMedalEmoji(index + 1)}</td>
+                      <td className="col-player">
+                        {entry.nickname}
+                        {currentPlayer?.id === entryPlayerId && <span className="you-badge">YOU</span>}
+                      </td>
+                      <td className="col-score">{entry.score}</td>
+                      <td className="col-level">{entry.level}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {hasMore && (
