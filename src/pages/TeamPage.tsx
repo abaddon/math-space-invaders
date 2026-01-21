@@ -64,13 +64,11 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
       setIsJoining(false);
 
       if (result.success) {
-        console.log('[Auto-join] Before refresh - memberCount:', currentTeam.memberCount);
         setJoinSuccess(true);
         // Refresh myTeams in context
         await refreshMyTeams(authUser.playerId);
         // Refresh currentTeam to show updated memberCount
         await setCurrentTeamBySlug(currentTeam.slug);
-        console.log('[Auto-join] After refresh - should re-render with new count');
       } else {
         setJoinError(result.error || 'Failed to join team');
       }
@@ -97,12 +95,10 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
     setIsJoining(false);
 
     if (result.success) {
-      console.log('[Manual-join] Before refresh - memberCount:', currentTeam.memberCount);
       setJoinSuccess(true);
       await refreshMyTeams(authUser.playerId);
       // Refresh currentTeam to show updated memberCount
       await setCurrentTeamBySlug(currentTeam.slug);
-      console.log('[Manual-join] After refresh - should re-render with new count');
     } else {
       setJoinError(result.error || 'Failed to join team');
     }
@@ -167,7 +163,6 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
 
   // Show join success message
   if (joinSuccess) {
-    console.log('[Join Success Screen] Rendering with memberCount:', currentTeam.memberCount);
     return (
       <div className="app-container">
         <div className="stars-bg"></div>
