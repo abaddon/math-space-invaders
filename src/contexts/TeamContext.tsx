@@ -51,6 +51,7 @@ export function TeamProvider({ children }: TeamProviderProps) {
     setIsLoadingCurrentTeam(true);
     try {
       const team = await getTeamBySlug(slug);
+      console.log('[TeamContext] setCurrentTeamBySlug - fetched team:', team?.name, 'memberCount:', team?.memberCount);
       setCurrentTeam(team);
     } catch (error) {
       console.error('Failed to load team:', error);
