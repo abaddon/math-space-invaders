@@ -1,7 +1,7 @@
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useTeam } from '../contexts/TeamContext';
-import { joinTeam } from '../services/teamService';
+import { joinTeam, leaveTeam } from '../services/teamService';
 import { Game } from '../components/Game';
 import { Leaderboard } from '../components/Leaderboard';
 import { MemberList } from '../components/MemberList';
@@ -19,6 +19,7 @@ interface TeamPageProps {
 export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpenCreateTeam }: TeamPageProps) {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { currentTeam, isLoadingCurrentTeam, setCurrentTeamBySlug, refreshMyTeams, myTeams } = useTeam();
 
   // View state
@@ -96,6 +97,29 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
       await refreshMyTeams(authUser.playerId);
     } else {
       setJoinError(result.error || 'Failed to join team');
+    }
+  };
+
+  // Handle leave team
+  const handleLeaveTeam = async () => {
+    if (!currentTeam || !authUser) return;
+
+    const confirmed = window.confirm(
+      `Leave ${currentTeam.name}?\n\nYou can rejoin later if the team is public or if you have the password.`
+    );
+
+    if (!confirmed) return;
+
+    const result = await leaveTeam({
+      teamId: currentTeam.id,
+      playerId: authUser.playerId
+    });
+
+    if (result.success) {
+      await refreshMyTeams(authUser.playerId);
+      navigate('/');
+    } else {
+      alert('Failed to leave team: ' + (result.error || 'Unknown error'));
     }
   };
 
@@ -262,6 +286,16 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
               </button>
             )}
 
+            {isMember && !isCreator && (
+              <button
+                onClick={handleLeaveTeam}
+                className="start-button"
+                style={{ background: '#ff4757' }}
+              >
+                🚪 Leave Team
+              </button>
+            )}
+
             <Link to="/" className="start-button" style={{ textDecoration: 'none' }}>
               🏠 Home
             </Link>
@@ -275,6 +309,10 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
               onSettingsSaved={async () => {
                 await setCurrentTeamBySlug(currentTeam.slug);
                 setShowSettings(false);
+              }}
+              onTeamDeleted={async () => {
+                await refreshMyTeams(authUser.playerId);
+                navigate('/');
               }}
             />
           )}
