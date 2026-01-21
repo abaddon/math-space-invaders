@@ -1,0 +1,234 @@
+/* TeamSettingsModal Styles */
+
+.team-settings-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  border: 2px solid #00ff88;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 500px;
+  width: 90%;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 40px rgba(0, 255, 136, 0.3);
+}
+
+.team-settings-modal::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.team-settings-modal .modal-content {
+  padding: 2rem;
+}
+
+.team-settings-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.team-settings-modal .modal-header h2 {
+  margin: 0;
+  color: #00ff88;
+  font-size: 1.8rem;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+.team-settings-modal .close-button {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+}
+
+.team-settings-modal .close-button:hover {
+  color: #ff4757;
+}
+
+.team-settings-modal .team-name-display {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(0, 255, 136, 0.05);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: 6px;
+}
+
+.team-settings-modal .team-name-display label {
+  display: block;
+  color: #00ff88;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.team-settings-modal .team-name-display p {
+  margin: 0 0 0.5rem 0;
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.team-settings-modal .team-name-note {
+  display: block;
+  color: #888;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.team-settings-modal h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #00ff88;
+  text-align: center;
+  font-size: 1.8rem;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+.team-settings-modal .success-message {
+  text-align: center;
+  color: #00ff88;
+  font-size: 1.1rem;
+  margin: 1.5rem 0;
+}
+
+.team-settings-modal .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.team-settings-modal .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #00ff88;
+  font-weight: 600;
+}
+
+.team-settings-modal .form-group input[type="text"],
+.team-settings-modal .form-group input[type="password"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #00ff88;
+  border-radius: 6px;
+  background: rgba(26, 26, 46, 0.8);
+  color: #ffffff;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.team-settings-modal .form-group input[type="text"]:focus,
+.team-settings-modal .form-group input[type="password"]:focus {
+  outline: none;
+  border-color: #00ff88;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+.team-settings-modal .radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.team-settings-modal .radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 2px solid #444;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #ffffff;
+  font-weight: normal;
+}
+
+.team-settings-modal .radio-label:hover {
+  border-color: #00ff88;
+  background: rgba(0, 255, 136, 0.1);
+}
+
+.team-settings-modal .radio-label input[type="radio"] {
+  width: 1.2rem;
+  height: 1.2rem;
+  cursor: pointer;
+}
+
+.team-settings-modal .radio-label:has(input[type="radio"]:checked) {
+  border-color: #00ff88;
+  background: rgba(0, 255, 136, 0.15);
+}
+
+.team-settings-modal .error-message {
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background: rgba(255, 0, 0, 0.2);
+  border: 2px solid #ff0000;
+  border-radius: 6px;
+  color: #ff6b6b;
+  text-align: center;
+}
+
+.team-settings-modal .button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.team-settings-modal .button-group button {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #00ff88;
+  border-radius: 6px;
+  background: rgba(0, 255, 136, 0.1);
+  color: #00ff88;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.team-settings-modal .button-group button:hover:not(:disabled) {
+  background: rgba(0, 255, 136, 0.3);
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+  transform: translateY(-2px);
+}
+
+.team-settings-modal .button-group button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.team-settings-modal .button-group button[type="submit"] {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 255, 136, 0.3));
+}
+
+.team-settings-modal .button-group button[type="submit"]:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.4), rgba(0, 255, 136, 0.5));
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .team-settings-modal {
+    width: 95%;
+  }
+
+  .team-settings-modal .modal-content {
+    padding: 1.5rem;
+  }
+
+  .team-settings-modal .modal-header h2 {
+    font-size: 1.5rem;
+  }
+}
