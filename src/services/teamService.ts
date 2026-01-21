@@ -510,3 +510,158 @@ export async function updateTeamSettings(params: {
     throw new Error('Failed to update team settings. Please try again.');
   }
 }
+
+/**
+ * Delete a team and all associated data (cascade delete)
+ * @param teamId Team ID to delete
+ * @param requestorId Player ID of the requestor
+ * @throws Error if requestor is not creator or deletion fails
+ */
+export async function deleteTeam(teamId: string, requestorId: string): Promise<void> {
+  try {
+    // 1. Verify requestor is creator
+    const membershipId = `${teamId}_${requestorId}`;
+    const membershipRef = doc(db, TEAM_MEMBERSHIPS_COLLECTION, membershipId);
+    const membershipDoc = await getDoc(membershipRef);
+
+    if (!membershipDoc.exists()) {
+      throw new Error('You are not a member of this team');
+    }
+
+    const membershipData = membershipDoc.data();
+    if (membershipData.role !== 'creator') {
+      throw new Error('Only team creator can delete the team');
+    }
+
+    // 2. Query all related documents in parallel
+    const membershipsRef = collection(db, TEAM_MEMBERSHIPS_COLLECTION);
+    const leaderboardRef = collection(db, TEAM_LEADERBOARD_COLLECTION);
+
+    const [membershipsSnap, leaderboardSnap] = await Promise.all([
+      getDocs(query(membershipsRef, where('teamId', '==', teamId))),
+      getDocs(query(leaderboardRef, where('teamId', '==', teamId))),
+    ]);
+
+    // 3. Calculate total operations and implement chunked batch if needed
+    const totalDocs = 1 + membershipsSnap.size + leaderboardSnap.size; // team + memberships + leaderboard
+
+    if (totalDocs > 450) {
+      // Chunked batch pattern for large teams
+      const chunks: Array<Array<{ ref: any; type: 'delete' | 'update'; data?: any }>> = [];
+      let currentChunk: Array<{ ref: any; type: 'delete' | 'update'; data?: any }> = [];
+
+      // Add team deletion
+      currentChunk.push({ ref: doc(db, TEAMS_COLLECTION, teamId), type: 'delete' });
+
+      // Add membership deletions
+      membershipsSnap.forEach((membershipDoc) => {
+        if (currentChunk.length >= 450) {
+          chunks.push(currentChunk);
+          currentChunk = [];
+        }
+        currentChunk.push({ ref: membershipDoc.ref, type: 'delete' });
+      });
+
+      // Add leaderboard deletions
+      leaderboardSnap.forEach((leaderboardDoc) => {
+        if (currentChunk.length >= 450) {
+          chunks.push(currentChunk);
+          currentChunk = [];
+        }
+        currentChunk.push({ ref: leaderboardDoc.ref, type: 'delete' });
+      });
+
+      // Add remaining operations to last chunk
+      if (currentChunk.length > 0) {
+        chunks.push(currentChunk);
+      }
+
+      // Execute chunks sequentially
+      for (const chunk of chunks) {
+        const batch = writeBatch(db);
+        chunk.forEach(({ ref, type }) => {
+          if (type === 'delete') {
+            batch.delete(ref);
+          }
+        });
+        await batch.commit();
+      }
+    } else {
+      // Single batch for smaller teams
+      const batch = writeBatch(db);
+
+      // Delete team document
+      batch.delete(doc(db, TEAMS_COLLECTION, teamId));
+
+      // Delete all memberships
+      membershipsSnap.forEach((membershipDoc) => {
+        batch.delete(membershipDoc.ref);
+      });
+
+      // Delete all leaderboard entries
+      leaderboardSnap.forEach((leaderboardDoc) => {
+        batch.delete(leaderboardDoc.ref);
+      });
+
+      // Commit batch
+      await batch.commit();
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    console.error('Delete team error:', error);
+    throw new Error('Failed to delete team. Please try again.');
+  }
+}
+
+/**
+ * Leave a team (remove membership)
+ * @param params Leave team parameters
+ * @returns Success status and optional error message
+ */
+export async function leaveTeam(params: {
+  teamId: string;
+  playerId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { teamId, playerId } = params;
+
+    // 1. Get membership to verify role
+    const membershipId = `${teamId}_${playerId}`;
+    const membershipRef = doc(db, TEAM_MEMBERSHIPS_COLLECTION, membershipId);
+    const membershipDoc = await getDoc(membershipRef);
+
+    if (!membershipDoc.exists()) {
+      return { success: false, error: 'You are not a member of this team' };
+    }
+
+    const membershipData = membershipDoc.data();
+
+    // 2. Prevent creator from leaving
+    if (membershipData.role === 'creator') {
+      return { success: false, error: 'Team creator cannot leave team. Delete team instead.' };
+    }
+
+    // 3. Batch delete membership and update count
+    const batch = writeBatch(db);
+
+    // Delete membership document
+    batch.delete(membershipRef);
+
+    // Decrement team member count
+    const teamRef = doc(db, TEAMS_COLLECTION, teamId);
+    batch.update(teamRef, {
+      memberCount: increment(-1),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Commit batch
+    await batch.commit();
+
+    return { success: true };
+  } catch (error) {
+    console.error('Leave team error:', error);
+    return { success: false, error: 'Failed to leave team. Please try again.' };
+  }
+}
