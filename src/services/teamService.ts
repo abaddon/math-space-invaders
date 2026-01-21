@@ -6,6 +6,8 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteField,
+  writeBatch,
   query,
   where,
   serverTimestamp,
@@ -18,6 +20,7 @@ import type { Team, TeamMembership, TeamRole } from '../types';
 
 const TEAMS_COLLECTION = 'teams';
 const TEAM_MEMBERSHIPS_COLLECTION = 'teamMemberships';
+const TEAM_LEADERBOARD_COLLECTION = 'teamLeaderboard';
 
 // Simple hash function using Web Crypto API (SHA-256)
 async function hashPassword(password: string): Promise<string> {
@@ -311,5 +314,199 @@ export async function getMyTeams(playerId: string): Promise<TeamMembership[]> {
   } catch (error) {
     console.error('Get my teams error:', error);
     return [];
+  }
+}
+
+/**
+ * Member with stats interface
+ */
+export interface TeamMemberWithStats extends TeamMembership {
+  maxScore: number;
+  gamesCompleted: number;
+  lastActive: Date;
+}
+
+/**
+ * Get all team members with their engagement stats
+ * @param teamId Team ID
+ * @returns Array of team members with stats, sorted by maxScore DESC
+ */
+export async function getTeamMembersWithStats(teamId: string): Promise<TeamMemberWithStats[]> {
+  try {
+    // Query memberships for this team
+    const membershipsRef = collection(db, TEAM_MEMBERSHIPS_COLLECTION);
+    const membershipsQuery = query(membershipsRef, where('teamId', '==', teamId));
+    const membershipsSnapshot = await getDocs(membershipsQuery);
+
+    // Query leaderboard entries for this team
+    const leaderboardRef = collection(db, TEAM_LEADERBOARD_COLLECTION);
+    const leaderboardQuery = query(leaderboardRef, where('teamId', '==', teamId));
+    const leaderboardSnapshot = await getDocs(leaderboardQuery);
+
+    // Create stats map from leaderboard (playerId -> stats)
+    const statsMap = new Map<string, { maxScore: number; achievedAt: Date }>();
+    leaderboardSnapshot.forEach((doc) => {
+      const data = doc.data();
+      statsMap.set(data.playerId, {
+        maxScore: data.score || 0,
+        achievedAt: data.achievedAt instanceof Timestamp ? data.achievedAt.toDate() : new Date(),
+      });
+    });
+
+    // Combine membership data with stats
+    const membersWithStats: TeamMemberWithStats[] = [];
+    membershipsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      const stats = statsMap.get(data.playerId);
+
+      membersWithStats.push({
+        id: data.id,
+        teamId: data.teamId,
+        playerId: data.playerId,
+        role: data.role as TeamRole,
+        teamName: data.teamName,
+        teamSlug: data.teamSlug,
+        playerNickname: data.playerNickname,
+        joinedAt: data.joinedAt instanceof Timestamp ? data.joinedAt.toDate() : new Date(),
+        maxScore: stats?.maxScore || 0,
+        gamesCompleted: stats ? 1 : 0, // Simplified: 1 if has leaderboard entry, 0 if not
+        lastActive: stats?.achievedAt || (data.joinedAt instanceof Timestamp ? data.joinedAt.toDate() : new Date()),
+      });
+    });
+
+    // Sort by maxScore DESC (show top scorers first)
+    membersWithStats.sort((a, b) => b.maxScore - a.maxScore);
+
+    return membersWithStats;
+  } catch (error) {
+    console.error('Get team members with stats error:', error);
+    return [];
+  }
+}
+
+/**
+ * Bulk remove team members
+ * @param params Removal parameters
+ * @returns Success status and optional error message
+ */
+export async function bulkRemoveMembers(params: {
+  teamId: string;
+  memberIds: string[]; // Membership IDs (not player IDs)
+  requestorId: string; // Player ID of the person making the request
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { teamId, memberIds, requestorId } = params;
+
+    // Validate batch size (Firestore limit is 500, leave buffer)
+    if (memberIds.length > 450) {
+      return { success: false, error: 'Cannot remove more than 450 members at once' };
+    }
+
+    // Verify requestor is creator
+    const requestorMembershipId = `${teamId}_${requestorId}`;
+    const requestorMembershipRef = doc(db, TEAM_MEMBERSHIPS_COLLECTION, requestorMembershipId);
+    const requestorMembershipDoc = await getDoc(requestorMembershipRef);
+
+    if (!requestorMembershipDoc.exists()) {
+      return { success: false, error: 'You are not a member of this team' };
+    }
+
+    const requestorData = requestorMembershipDoc.data();
+    if (requestorData.role !== 'creator') {
+      return { success: false, error: 'Only the team creator can remove members' };
+    }
+
+    // Prevent creator from removing self
+    if (memberIds.includes(requestorMembershipId)) {
+      return { success: false, error: 'Cannot remove yourself as creator. Delete the team instead.' };
+    }
+
+    // Use batch write for atomic operation
+    const batch = writeBatch(db);
+
+    // Delete all membership documents
+    memberIds.forEach((membershipId) => {
+      const membershipRef = doc(db, TEAM_MEMBERSHIPS_COLLECTION, membershipId);
+      batch.delete(membershipRef);
+    });
+
+    // Decrement team member count
+    const teamRef = doc(db, TEAMS_COLLECTION, teamId);
+    batch.update(teamRef, {
+      memberCount: increment(-memberIds.length),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Commit batch
+    await batch.commit();
+
+    return { success: true };
+  } catch (error) {
+    console.error('Bulk remove members error:', error);
+    return { success: false, error: 'Failed to remove members. Please try again.' };
+  }
+}
+
+/**
+ * Update team settings (public/private visibility and password)
+ * @param params Update settings parameters
+ * @throws Error if requestor is not creator or validation fails
+ */
+export async function updateTeamSettings(params: {
+  teamId: string;
+  requestorId: string;
+  isPublic: boolean;
+  password?: string;
+}): Promise<void> {
+  const { teamId, requestorId, isPublic, password } = params;
+
+  try {
+    // 1. Verify requestor is creator
+    const membershipId = `${teamId}_${requestorId}`;
+    const membershipRef = doc(db, TEAM_MEMBERSHIPS_COLLECTION, membershipId);
+    const membershipDoc = await getDoc(membershipRef);
+
+    if (!membershipDoc.exists()) {
+      throw new Error('You are not a member of this team');
+    }
+
+    const membershipData = membershipDoc.data();
+    if (membershipData.role !== 'creator') {
+      throw new Error('Only team creator can update settings');
+    }
+
+    // 2. Validate inputs
+    if (!isPublic && !password) {
+      throw new Error('Password is required for private teams');
+    }
+
+    // 3. Hash password if provided
+    let passwordHash: string | undefined;
+    if (!isPublic && password) {
+      passwordHash = await hashPassword(password);
+    }
+
+    // 4. Update team document
+    const teamRef = doc(db, TEAMS_COLLECTION, teamId);
+    const updateData: Record<string, FieldValue | boolean | string> = {
+      isPublic,
+      updatedAt: serverTimestamp(),
+    };
+
+    // Set or remove password hash based on visibility
+    if (!isPublic && passwordHash) {
+      updateData.passwordHash = passwordHash;
+    } else {
+      // Remove password hash when switching to public
+      updateData.passwordHash = deleteField();
+    }
+
+    await updateDoc(teamRef, updateData);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    console.error('Update team settings error:', error);
+    throw new Error('Failed to update team settings. Please try again.');
   }
 }
