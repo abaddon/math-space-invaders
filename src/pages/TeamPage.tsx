@@ -4,6 +4,7 @@ import { useTeam } from '../contexts/TeamContext';
 import { joinTeam } from '../services/teamService';
 import { Game } from '../components/Game';
 import { Leaderboard } from '../components/Leaderboard';
+import { MemberList } from '../components/MemberList';
 import type { AuthUser, PlayerProfile } from '../types';
 
 interface TeamPageProps {
@@ -19,8 +20,8 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
   const location = useLocation();
   const { currentTeam, isLoadingCurrentTeam, setCurrentTeamBySlug, refreshMyTeams, myTeams } = useTeam();
 
-  // View state for members
-  const [view, setView] = useState<'landing' | 'game' | 'leaderboard'>('landing');
+  // View state
+  const [view, setView] = useState<'landing' | 'game' | 'leaderboard' | 'members'>('landing');
 
   // Join flow state
   const [isJoining, setIsJoining] = useState(false);
@@ -124,6 +125,9 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
   // Check if user is a member
   const isMember = myTeams.some(m => m.teamId === currentTeam.id);
 
+  // Check if user is the creator
+  const isCreator = authUser ? currentTeam.creatorId === authUser.playerId : false;
+
   // Show join success message
   if (joinSuccess) {
     return (
@@ -221,10 +225,31 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
               🏆 View Leaderboard
             </button>
 
+            {isCreator && (
+              <button
+                onClick={() => setShowSettings(true)}
+                className="start-button"
+              >
+                ⚙️ Settings
+              </button>
+            )}
+
             <Link to="/" className="start-button" style={{ textDecoration: 'none' }}>
               🏠 Home
             </Link>
           </div>
+
+          {showSettings && (
+            <TeamSettingsModal
+              team={currentTeam}
+              authPlayerId={authUser.playerId}
+              onClose={() => setShowSettings(false)}
+              onSettingsSaved={async () => {
+                await setCurrentTeamBySlug(currentTeam.slug);
+                setShowSettings(false);
+              }}
+            />
+          )}
         </div>
       </div>
     );
