@@ -5,6 +5,7 @@ import { joinTeam } from '../services/teamService';
 import { Game } from '../components/Game';
 import { Leaderboard } from '../components/Leaderboard';
 import { MemberList } from '../components/MemberList';
+import TeamSettingsModal from '../components/TeamSettingsModal';
 import type { AuthUser, PlayerProfile } from '../types';
 
 interface TeamPageProps {
@@ -29,6 +30,9 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
   const [joinSuccess, setJoinSuccess] = useState(false);
   const [manualPassword, setManualPassword] = useState('');
   const [hasAttemptedAutoJoin, setHasAttemptedAutoJoin] = useState(false);
+
+  // Settings modal state (for future use)
+  const [showSettings, setShowSettings] = useState(false);
 
   const passwordFromHash = location.hash.slice(1); // Remove # prefix
 
@@ -125,8 +129,9 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
   // Check if user is a member
   const isMember = myTeams.some(m => m.teamId === currentTeam.id);
 
-  // Check if user is the creator
-  const isCreator = authUser ? currentTeam.creatorId === authUser.playerId : false;
+  // Check if user is the creator (based on membership role)
+  const myMembership = myTeams.find(m => m.teamId === currentTeam.id);
+  const isCreator = myMembership?.role === 'creator';
 
   // Show join success message
   if (joinSuccess) {
@@ -199,6 +204,20 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
       );
     }
 
+    if (view === 'members') {
+      return (
+        <MemberList
+          teamId={currentTeam.id}
+          authPlayerId={authUser.playerId}
+          onClose={() => setView('landing')}
+          onMembersChanged={async () => {
+            await refreshMyTeams(authUser.playerId);
+            await setCurrentTeamBySlug(currentTeam.slug);
+          }}
+        />
+      );
+    }
+
     // Landing view - show team info with Play and View Leaderboard buttons
     return (
       <div className="app-container">
@@ -224,6 +243,15 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
             >
               🏆 View Leaderboard
             </button>
+
+            {isCreator && (
+              <button
+                onClick={() => setView('members')}
+                className="start-button"
+              >
+                👥 Manage Members
+              </button>
+            )}
 
             {isCreator && (
               <button
