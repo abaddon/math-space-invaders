@@ -67,6 +67,8 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
         setJoinSuccess(true);
         // Refresh myTeams in context
         await refreshMyTeams(authUser.playerId);
+        // Refresh currentTeam to show updated memberCount
+        await setCurrentTeamBySlug(currentTeam.slug);
       } else {
         setJoinError(result.error || 'Failed to join team');
       }
@@ -95,6 +97,8 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
     if (result.success) {
       setJoinSuccess(true);
       await refreshMyTeams(authUser.playerId);
+      // Refresh currentTeam to show updated memberCount
+      await setCurrentTeamBySlug(currentTeam.slug);
     } else {
       setJoinError(result.error || 'Failed to join team');
     }
