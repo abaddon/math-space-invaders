@@ -167,7 +167,7 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
           <p className="subtitle">You successfully joined {currentTeam.name}</p>
           <p>Members: {currentTeam.memberCount}</p>
           <button
-            onClick={() => setView('landing')}
+            onClick={() => setJoinSuccess(false)}
             className="start-button"
           >
             🎮 Continue
