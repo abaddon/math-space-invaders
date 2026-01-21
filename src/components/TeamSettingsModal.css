@@ -218,6 +218,52 @@
   background: linear-gradient(135deg, rgba(0, 255, 136, 0.4), rgba(0, 255, 136, 0.5));
 }
 
+/* Danger Zone Styles */
+.team-settings-modal .danger-zone {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 71, 87, 0.1);
+  border: 2px solid #ff4757;
+  border-radius: 8px;
+}
+
+.team-settings-modal .danger-zone h3 {
+  margin: 0 0 0.5rem 0;
+  color: #ff4757;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.team-settings-modal .danger-zone p {
+  margin: 0 0 1rem 0;
+  color: #ffb3b8;
+  font-size: 0.9rem;
+}
+
+.team-settings-modal .danger-zone .delete-button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #ff4757;
+  border-radius: 6px;
+  background: rgba(255, 71, 87, 0.2);
+  color: #ff4757;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.team-settings-modal .danger-zone .delete-button:hover:not(:disabled) {
+  background: rgba(255, 71, 87, 0.4);
+  box-shadow: 0 0 15px rgba(255, 71, 87, 0.5);
+  transform: translateY(-2px);
+}
+
+.team-settings-modal .danger-zone .delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Responsive design */
 @media (max-width: 600px) {
   .team-settings-modal {

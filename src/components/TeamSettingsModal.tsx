@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
-import { updateTeamSettings } from '../services/teamService';
+import { updateTeamSettings, deleteTeam } from '../services/teamService';
 import type { Team } from '../types';
 import './TeamSettingsModal.css';
 
@@ -8,6 +8,7 @@ interface TeamSettingsModalProps {
   authPlayerId: string;
   onClose: () => void;
   onSettingsSaved: () => void;
+  onTeamDeleted: () => void;
 }
 
 export default function TeamSettingsModal({
@@ -15,12 +16,14 @@ export default function TeamSettingsModal({
   authPlayerId,
   onClose,
   onSettingsSaved,
+  onTeamDeleted,
 }: TeamSettingsModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isPublic, setIsPublic] = useState(team.isPublic);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [success, setSuccess] = useState(false);
 
   // Track if team was previously public (to require password when switching to private)
@@ -74,6 +77,25 @@ export default function TeamSettingsModal({
 
   const handleCancel = () => {
     onClose();
+  };
+
+  const handleDeleteTeam = async () => {
+    const confirmed = window.confirm(
+      `Delete ${team.name}?\n\nThis will permanently delete the team, remove all members, and erase all team leaderboard data. This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    setError('');
+
+    try {
+      await deleteTeam(team.id, authPlayerId);
+      onTeamDeleted(); // Trigger navigation
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete team');
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -162,6 +184,19 @@ export default function TeamSettingsModal({
                 </button>
               </div>
             </form>
+
+            <div className="danger-zone">
+              <h3>Danger Zone</h3>
+              <p>Once deleted, team data cannot be recovered</p>
+              <button
+                type="button"
+                onClick={handleDeleteTeam}
+                disabled={isDeleting || isSaving}
+                className="delete-button"
+              >
+                {isDeleting ? '🗑️ Deleting...' : '🗑️ Delete Team'}
+              </button>
+            </div>
           </>
         )}
       </div>
