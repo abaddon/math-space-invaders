@@ -1094,7 +1094,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
         </div>
         <div className="user-actions">
           <MyTeamsDropdown />
-          <button className="logout-btn" onClick={onLogout} title="Logout">
+          <button className="logout-btn" onClick={onLogout} title="Logout" data-testid="logout-button">
             🚪 Logout
           </button>
         </div>
