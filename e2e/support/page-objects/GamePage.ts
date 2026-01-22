@@ -115,17 +115,24 @@ export class GamePage extends BasePage {
   }
 
   /**
-   * Click the correct answer block dynamically.
-   * Finds which block has isCorrect=true and clicks it.
+   * Fire at the correct answer block.
+   * Finds which block has isCorrect=true and fires at it.
+   *
+   * Strategy: Use keyboard (Space) to fire after positioning via keyboard.
+   * Keyboard is more reliable than canvas click in E2E environments.
    */
   async clickCorrectAnswer(): Promise<void> {
-    const position = await this.findCorrectAnswerPosition();
-    await this.clickAnswerBlock(position);
+    const blocks = await this.hud.getAnswerBlocks();
+    const correctBlock = blocks.find(b => b.isCorrect);
+    if (!correctBlock) {
+      throw new Error('No correct answer block found');
+    }
+    await this.fireAtBlock(correctBlock.position, correctBlock.x);
   }
 
   /**
-   * Click a wrong answer block dynamically.
-   * Finds a block with isCorrect=false and clicks it.
+   * Fire at a wrong answer block.
+   * Finds a block with isCorrect=false and fires at it.
    * @throws Error if no wrong answer block is found
    */
   async clickWrongAnswer(): Promise<void> {
@@ -134,6 +141,54 @@ export class GamePage extends BasePage {
     if (!wrongBlock) {
       throw new Error('No wrong answer block found');
     }
-    await this.clickAnswerBlock(wrongBlock.position);
+    await this.fireAtBlock(wrongBlock.position, wrongBlock.x);
+  }
+
+  /**
+   * Fire at a specific block using its position and X coordinate.
+   * Uses keyboard controls for reliable cross-environment support.
+   *
+   * @param position - Target column name
+   * @param targetX - Target X coordinate from game state
+   */
+  private async fireAtBlock(position: 'left' | 'center' | 'right', targetX: number): Promise<void> {
+    const canvasLocator = this.page.locator('[data-testid="game-canvas"]');
+    const box = await canvasLocator.boundingBox();
+    if (!box) {
+      throw new Error('Canvas not found');
+    }
+
+    // Calculate target X as percentage of canvas width
+    const targetPercent = (targetX / box.width) * 100;
+
+    // Move to position by first going to far left, then moving right
+    // This normalizes the starting position for consistent movement
+
+    // Press A to move left for a bit (normalize position)
+    await this.page.keyboard.down('a');
+    await this.page.waitForTimeout(500);
+    await this.page.keyboard.up('a');
+
+    // Calculate how long to hold D based on target position
+    // At ~20% = short, ~50% = medium, ~80% = long
+    let moveRightDuration = 0;
+    if (targetPercent > 30) {
+      moveRightDuration = (targetPercent - 20) * 8; // ~8ms per 1% of canvas
+    }
+
+    if (moveRightDuration > 0) {
+      await this.page.keyboard.down('d');
+      await this.page.waitForTimeout(Math.min(moveRightDuration, 1000));
+      await this.page.keyboard.up('d');
+    }
+
+    // Brief pause to let spaceship settle
+    await this.page.waitForTimeout(50);
+
+    // Fire!
+    await this.page.keyboard.press('Space');
+
+    // Wait for projectile to reach target (animation time)
+    await this.page.waitForTimeout(200);
   }
 }
