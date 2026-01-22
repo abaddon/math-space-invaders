@@ -21,6 +21,17 @@ Before({ tags: '@authenticated' }, async function () {
   console.log('[E2E] Authenticated scenario - expecting storageState');
 });
 
+// Viewport tag hooks for responsive testing
+Before({ tags: '@viewport:1920x1080' }, async function ({ page }) {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  console.log('[E2E] Set viewport to 1920x1080 (Full HD)');
+});
+
+Before({ tags: '@viewport:375x667' }, async function ({ page }) {
+  await page.setViewportSize({ width: 375, height: 667 });
+  console.log('[E2E] Set viewport to 375x667 (iPhone SE)');
+});
+
 After(async function ({ $testInfo }) {
   // Screenshot-on-failure is handled by Playwright config (screenshot: 'only-on-failure')
   // This hook provides lifecycle logging for debugging
