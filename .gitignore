@@ -27,3 +27,8 @@ dist-ssr
 coverage
 .planning
 *.local.md
+
+# Playwright
+test-results
+playwright-report
+.features-gen
