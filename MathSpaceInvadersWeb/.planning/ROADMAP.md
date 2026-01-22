@@ -33,6 +33,12 @@ This roadmap establishes comprehensive E2E testing infrastructure for the Math S
 
 **Dependencies:** None
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Install dependencies, create directory structure, configure Playwright with BDD
+- [ ] 01-02-PLAN.md — Implement hooks, Custom World pattern, verify with smoke test
+
 ---
 
 ### Phase 2: Base Infrastructure
@@ -69,8 +75,8 @@ This roadmap establishes comprehensive E2E testing infrastructure for the Math S
 - AUTH-07: Auth State Reuse
 
 **Success Criteria:**
-1. Test user can complete login flow (enter credentials → click login → verify dashboard access)
-2. Test user can complete signup flow (enter new credentials → click signup → verify account created)
+1. Test user can complete login flow (enter credentials -> click login -> verify dashboard access)
+2. Test user can complete signup flow (enter new credentials -> click signup -> verify account created)
 3. Invalid credentials display appropriate error message
 4. Authenticated session persists across page reload using storageState
 5. Logout successfully clears session and returns to login screen
@@ -128,7 +134,7 @@ This roadmap establishes comprehensive E2E testing infrastructure for the Math S
 **Success Criteria:**
 1. Test can navigate to Leaderboard page and read top 10 score entries with usernames and scores
 2. Game over triggers score submission and new score appears in leaderboard for authenticated user
-3. Test can create new team (open modal → enter name/description → submit → team appears in list)
+3. Test can create new team (open modal -> enter name/description -> submit -> team appears in list)
 4. Test can join existing team via invite code and see team members list
 5. Test can leave team and team disappears from user's team list
 6. Team scores aggregate correctly from member individual scores
@@ -172,7 +178,7 @@ This roadmap establishes comprehensive E2E testing infrastructure for the Math S
 | Teams | TEAM-01, TEAM-02, TEAM-03, TEAM-04, TEAM-05, TEAM-06, TEAM-07, TEAM-08, TEAM-09 | Phase 5 |
 | CI/CD | CI-01, CI-02, CI-03, CI-04, CI-05 | Phase 6 |
 
-**Total: 36 requirements | 6 phases | 100% coverage ✓**
+**Total: 36 requirements | 6 phases | 100% coverage**
 
 ---
 
@@ -180,15 +186,15 @@ This roadmap establishes comprehensive E2E testing infrastructure for the Math S
 
 ```
 Phase 1 (Foundation Setup)
-  ↓
+  |
 Phase 2 (Base Infrastructure)
-  ↓
-Phase 3 (Authentication Tests) → Validates full flow without Canvas
-  ↓
-Phase 4 (Gameplay Tests) → Validates Canvas pattern (highest risk)
-  ↓
-Phase 5 (Feature Coverage) → Parallel expansion using established patterns
-  ↓
+  |
+Phase 3 (Authentication Tests) -> Validates full flow without Canvas
+  |
+Phase 4 (Gameplay Tests) -> Validates Canvas pattern (highest risk)
+  |
+Phase 5 (Feature Coverage) -> Parallel expansion using established patterns
+  |
 Phase 6 (CI/CD Integration)
 ```
 
@@ -214,7 +220,7 @@ This roadmap structure derives from comprehensive research documented in `.plann
 
 | Phase | Status | Requirements | Completion |
 |-------|--------|--------------|------------|
-| Phase 1 | Pending | 6 | 0% |
+| Phase 1 | Planned | 6 | 0% |
 | Phase 2 | Pending | 3 | 0% |
 | Phase 3 | Pending | 7 | 0% |
 | Phase 4 | Pending | 8 | 0% |
@@ -227,6 +233,5 @@ This roadmap structure derives from comprehensive research documented in `.plann
 
 ## Next Actions
 
-1. Review this roadmap structure for approval
-2. Once approved, initiate Phase 1 via `/gsd:plan-phase 1`
-3. Phase 1 will decompose Foundation Setup into executable implementation plan
+1. Execute Phase 1 via `/gsd:execute-phase 1`
+2. Phase 1 has 2 plans in 2 waves (sequential execution)
