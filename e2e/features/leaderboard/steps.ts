@@ -3,14 +3,13 @@ import { expect } from '@playwright/test';
 import { LeaderboardPage } from '../../support/page-objects/LeaderboardPage';
 import { GamePage } from '../../support/page-objects/GamePage';
 import { AuthPage } from '../../support/page-objects/AuthPage';
+// Firebase helpers available for seeding test data when needed
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { seedLeaderboardScore } from '../../support/helpers/firebase-helpers';
 
 // Store instances for use across steps
 let leaderboardPage: LeaderboardPage;
 let gamePage: GamePage;
-
-// Track seeded player IDs for cleanup context
-let seededPlayerIds: string[] = [];
 
 // Current user's nickname (set during login)
 let currentUserNickname: string = '';
@@ -46,60 +45,6 @@ async function ensureLoggedIn(page: import('@playwright/test').Page): Promise<st
 }
 
 // --- Leaderboard-Specific Given Steps ---
-
-Given('the leaderboard has seeded scores', async ({ page }) => {
-  gamePage = new GamePage(page);
-  leaderboardPage = new LeaderboardPage(page);
-
-  // Navigate to app and login if needed
-  await page.goto('/');
-  currentUserNickname = await ensureLoggedIn(page);
-
-  // Wait for menu to be ready
-  await expect.poll(async () => {
-    return await gamePage.getGameState();
-  }, {
-    message: 'wait for game menu',
-    timeout: 10000
-  }).toBe('MENU');
-
-  // Seed test scores with unique IDs
-  const timestamp = Date.now();
-  seededPlayerIds = [];
-
-  const testScores = [
-    { playerId: `test_player_${timestamp}_1`, nickname: 'SpaceMaster', score: 500, level: 15 },
-    { playerId: `test_player_${timestamp}_2`, nickname: 'MathWhiz', score: 350, level: 12 },
-    { playerId: `test_player_${timestamp}_3`, nickname: 'GalaxyHero', score: 200, level: 8 },
-    { playerId: `test_player_${timestamp}_4`, nickname: 'StarPilot', score: 150, level: 6 },
-    { playerId: `test_player_${timestamp}_5`, nickname: 'Rookie', score: 50, level: 2 },
-  ];
-
-  for (const scoreData of testScores) {
-    await seedLeaderboardScore(scoreData);
-    seededPlayerIds.push(scoreData.playerId);
-  }
-});
-
-Given('the leaderboard has no seeded scores', async ({ page }) => {
-  gamePage = new GamePage(page);
-  leaderboardPage = new LeaderboardPage(page);
-
-  // Navigate to app and login if needed
-  await page.goto('/');
-  currentUserNickname = await ensureLoggedIn(page);
-
-  // Wait for menu to be ready
-  await expect.poll(async () => {
-    return await gamePage.getGameState();
-  }, {
-    message: 'wait for game menu',
-    timeout: 10000
-  }).toBe('MENU');
-
-  // Don't seed any scores - rely on test isolation
-  seededPlayerIds = [];
-});
 
 Given('the leaderboard is open from menu', async ({ page }) => {
   gamePage = new GamePage(page);
@@ -159,6 +104,10 @@ When('I wait for the game to start', async ({ page }) => {
 
 When('I answer one question correctly', async ({ page }) => {
   gamePage = new GamePage(page);
+
+  // Capture username before playing
+  const usernameElement = page.locator('.user-name');
+  currentUserNickname = await usernameElement.textContent() || 'unknown_user';
 
   // Wait for answer blocks to appear
   await expect.poll(async () => {
