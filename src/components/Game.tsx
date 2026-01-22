@@ -1175,12 +1175,12 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
       )}
 
       {gameState === 'GAME_OVER' && (
-        <div className="game-over-screen">
+        <div className="game-over-screen" data-testid="game-over-screen">
           <div className="stars-bg"></div>
-          <h1 className="game-over-title">GAME OVER</h1>
+          <h1 className="game-over-title" data-testid="game-over-title">GAME OVER</h1>
           <div className="final-score-card">
             <p className="score-label">FINAL SCORE</p>
-            <p className="score-value">{score.score}</p>
+            <p className="score-value" data-testid="final-score">{score.score}</p>
             {currentPlayer && score.score > 0 && score.score >= currentPlayer.highScore && (
               <p className="new-high-score">🎉 NEW HIGH SCORE!</p>
             )}
@@ -1203,7 +1203,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
              score.score >= 15 ? "Good effort! Try again!" :
              "Don't give up! Practice makes perfect!"}
           </p>
-          <button className="play-again-button" onClick={startGame}>
+          <button className="play-again-button" onClick={startGame} data-testid="play-again-button">
             🔄 PLAY AGAIN
           </button>
           {onBackToTeam ? (
@@ -1245,16 +1245,20 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
                 trackGamePause(score.level, score.score);
               }}
               aria-label="Pause game"
+              data-testid="pause-button"
             >
               ⏸
             </button>
           )}
           {gameState === 'PAUSED' && !showQuitConfirm && (
             <div className="pause-buttons">
-              <button onClick={() => {
-                setGameState('PLAYING');
-                trackGameResume(score.level, score.score);
-              }}>▶ Resume</button>
+              <button
+                onClick={() => {
+                  setGameState('PLAYING');
+                  trackGameResume(score.level, score.score);
+                }}
+                data-testid="resume-button"
+              >▶ Resume</button>
               <button onClick={startGame}>🔄 Restart</button>
               <button onClick={() => setShowQuitConfirm(true)}>🏠 Menu</button>
             </div>
