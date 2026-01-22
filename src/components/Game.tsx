@@ -252,6 +252,34 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
     setLevelConfig(config);
   }, [score.level]);
 
+  // Expose game state for E2E testing (development/test only)
+  useEffect(() => {
+    interface WindowWithGameState extends Window {
+      __gameState?: {
+        score: number;
+        level: number;
+        lives: number;
+        correctInLevel: number;
+        gameState: GameState;
+      };
+    }
+
+    if (import.meta.env.MODE === 'development' || import.meta.env.MODE === 'test') {
+      (window as WindowWithGameState).__gameState = {
+        score: score.score,
+        level: score.level,
+        lives: score.lives,
+        correctInLevel: score.correctInLevel,
+        gameState: gameState
+      };
+    }
+    return () => {
+      if (import.meta.env.MODE === 'development' || import.meta.env.MODE === 'test') {
+        delete (window as WindowWithGameState).__gameState;
+      }
+    };
+  }, [score, gameState]);
+
   // Calculate speed based on time-based difficulty system
   const getCurrentSpeed = useCallback((): number => {
     if (!levelConfig) return 1.5; // Default fallback
@@ -1184,6 +1212,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
             height={canvasSize.height}
             onClick={handleCanvasClick}
             className={gameState === 'PAUSED' ? 'paused-blur' : ''}
+            data-testid="game-canvas"
           />
           {gameState === 'PAUSED' && <div className="pause-blur-overlay"></div>}
           {gameState === 'PLAYING' && (
