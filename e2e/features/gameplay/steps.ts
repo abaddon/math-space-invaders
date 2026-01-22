@@ -191,3 +191,108 @@ When('I click the Resume button', async ({ page }) => {
   const resumeButton = page.locator('[data-testid="resume-button"]');
   await resumeButton.click();
 });
+
+// Level progression steps
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+Given('I am at level {int}', async ({ page }, expectedLevel: number) => {
+  const level = await gamePage.getLevel();
+  expect(level).toBe(expectedLevel);
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+When('I answer {int} questions correctly', async ({ page }, count: number) => {
+  for (let i = 0; i < count; i++) {
+    // Wait for answer blocks to appear (new round)
+    await expect.poll(async () => {
+      const blocks = await gamePage.getAnswerBlocks();
+      return blocks.length;
+    }, {
+      message: `wait for answer blocks for question ${i + 1}`,
+      timeout: 15000,
+      intervals: [100, 250, 500, 1000]
+    }).toBe(3);
+
+    // Click correct answer
+    await gamePage.clickCorrectAnswer();
+
+    // Wait for score to update (projectile hit)
+    await expect.poll(async () => {
+      return await gamePage.getScore();
+    }, {
+      message: `wait for score to update after question ${i + 1}`,
+      timeout: 15000,
+      intervals: [100, 250, 500, 1000]
+    }).toBeGreaterThan(i);
+
+    // If not last question, wait for next round to load
+    if (i < count - 1) {
+      // Small delay to allow state transition
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+});
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+Then('my level should advance to {int}', async ({ page }, expectedLevel: number) => {
+  // Poll for level change - may take time after LEVEL_UP state
+  await expect.poll(async () => {
+    return await gamePage.getLevel();
+  }, {
+    message: `wait for level to advance to ${expectedLevel}`,
+    timeout: 20000,
+    intervals: [100, 500, 1000]
+  }).toBe(expectedLevel);
+});
+
+// Game over steps
+When('I lose all my lives', async () => {
+  // Answer wrong 3 times to lose all lives
+  for (let i = 0; i < 3; i++) {
+    // Wait for answer blocks
+    await expect.poll(async () => {
+      const blocks = await gamePage.getAnswerBlocks();
+      return blocks.length;
+    }, {
+      message: `wait for answer blocks for wrong answer ${i + 1}`,
+      timeout: 15000
+    }).toBe(3);
+
+    // Click wrong answer
+    await gamePage.clickWrongAnswer();
+
+    // Wait for lives to decrease or game over
+    if (i < 2) {
+      // Wait for lives to decrease
+      await expect.poll(async () => {
+        return await gamePage.getLives();
+      }, {
+        message: `wait for lives to decrease after wrong answer ${i + 1}`,
+        timeout: 15000
+      }).toBe(2 - i);
+
+      // Wait for next round
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
+  // Wait for GAME_OVER state
+  await expect.poll(async () => {
+    return await gamePage.getGameState();
+  }, {
+    message: 'wait for game over state',
+    timeout: 10000
+  }).toBe('GAME_OVER');
+});
+
+Then('I should see the Game Over screen', async ({ page }) => {
+  const gameOverScreen = page.locator('[data-testid="game-over-screen"]');
+  await expect(gameOverScreen).toBeVisible({ timeout: 5000 });
+
+  const gameOverTitle = page.locator('[data-testid="game-over-title"]');
+  await expect(gameOverTitle).toHaveText('GAME OVER');
+});
+
+Then('I should see my final score of {int}', async ({ page }, expectedScore: number) => {
+  const finalScoreElement = page.locator('[data-testid="final-score"]');
+  await expect(finalScoreElement).toHaveText(String(expectedScore), { timeout: 5000 });
+});

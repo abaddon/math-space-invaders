@@ -145,50 +145,32 @@ export class GamePage extends BasePage {
   }
 
   /**
-   * Fire at a specific block using its position and X coordinate.
-   * Uses keyboard controls for reliable cross-environment support.
+   * Fire at a specific block using canvas click with precise coordinates.
+   * Canvas click positions spaceship at click X and fires in one action.
    *
-   * @param position - Target column name
-   * @param targetX - Target X coordinate from game state
+   * @param position - Target column (unused, kept for API compatibility)
+   * @param targetX - Target X coordinate from answer block
    */
   private async fireAtBlock(position: 'left' | 'center' | 'right', targetX: number): Promise<void> {
+    // Log position for debugging (prevents unused var error)
+    console.log(`Firing at ${position} position, X=${targetX}`);
+
     const canvasLocator = this.page.locator('[data-testid="game-canvas"]');
     const box = await canvasLocator.boundingBox();
     if (!box) {
       throw new Error('Canvas not found');
     }
 
-    // Calculate target X as percentage of canvas width
-    const targetPercent = (targetX / box.width) * 100;
+    // Click at target X position, Y near bottom where spaceship can be positioned
+    // Canvas click both moves spaceship to X and fires projectile
+    const clickY = box.height * 0.85;
 
-    // Move to position by first going to far left, then moving right
-    // This normalizes the starting position for consistent movement
-
-    // Press A to move left for a bit (normalize position)
-    await this.page.keyboard.down('a');
-    await this.page.waitForTimeout(500);
-    await this.page.keyboard.up('a');
-
-    // Calculate how long to hold D based on target position
-    // At ~20% = short, ~50% = medium, ~80% = long
-    let moveRightDuration = 0;
-    if (targetPercent > 30) {
-      moveRightDuration = (targetPercent - 20) * 8; // ~8ms per 1% of canvas
-    }
-
-    if (moveRightDuration > 0) {
-      await this.page.keyboard.down('d');
-      await this.page.waitForTimeout(Math.min(moveRightDuration, 1000));
-      await this.page.keyboard.up('d');
-    }
-
-    // Brief pause to let spaceship settle
-    await this.page.waitForTimeout(50);
-
-    // Fire!
-    await this.page.keyboard.press('Space');
+    await canvasLocator.click({
+      position: { x: targetX, y: clickY },
+      force: true
+    });
 
     // Wait for projectile to reach target (animation time)
-    await this.page.waitForTimeout(200);
+    await this.page.waitForTimeout(500);
   }
 }

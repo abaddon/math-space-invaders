@@ -93,20 +93,37 @@ export class HUDComponent {
 
   /**
    * Get the answer blocks from game state.
-   * @returns Array of answer blocks with position, value, isCorrect
+   * Position is calculated from X coordinate to handle shuffled blocks.
+   * @returns Array of answer blocks with position, value, isCorrect, x, y
    */
   async getAnswerBlocks(): Promise<Array<{
     position: 'left' | 'center' | 'right';
     value: string | number;
     isCorrect: boolean;
+    x: number;
+    y: number;
   }>> {
     return await this.page.evaluate(() => {
       const state = (window as WindowWithGameState).__gameState;
-      return state?.answerBlocks?.map(block => ({
-        position: block.position,
+      const blocks = state?.answerBlocks || [];
+
+      // Sort blocks by X coordinate to determine positions
+      const sortedByX = [...blocks].sort((a, b) => a.x - b.x);
+      const positions: ('left' | 'center' | 'right')[] = ['left', 'center', 'right'];
+
+      // Create a map from block X to position
+      const xToPosition = new Map<number, 'left' | 'center' | 'right'>();
+      sortedByX.forEach((block, index) => {
+        xToPosition.set(block.x, positions[index]);
+      });
+
+      return blocks.map(block => ({
+        position: xToPosition.get(block.x) || 'center',
         value: block.value,
-        isCorrect: block.isCorrect
-      })) || [];
+        isCorrect: block.isCorrect,
+        x: block.x,
+        y: block.y
+      }));
     });
   }
 
