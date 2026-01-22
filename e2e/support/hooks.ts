@@ -10,6 +10,8 @@ Before(async function ({ $testInfo }) {
 
 // Tag-based hook for unauthenticated scenarios
 Before({ tags: '@unauthenticated' }, async function ({ page }) {
+  // Navigate to page first to ensure localStorage is accessible
+  await page.goto('/');
   await page.evaluate(() => localStorage.clear());
   console.log('[E2E] Cleared localStorage for unauthenticated scenario');
 });
