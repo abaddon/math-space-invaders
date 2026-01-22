@@ -1,4 +1,5 @@
 import { BeforeAll, AfterAll, Before, After } from './fixtures';
+import { createdTeamNames } from '../features/teams/steps';
 
 BeforeAll(async function () {
   console.log('[E2E] Test suite starting...');
@@ -44,5 +45,16 @@ After(async function ({ $testInfo }) {
 });
 
 AfterAll(async function () {
+  // Log teams created during tests for cleanup tracking
+  // Teams have random suffixes (nanoid) ensuring no conflicts with real data
+  // Firebase security rules may prevent deletion without proper auth,
+  // so we just log them for manual cleanup if needed
+  if (createdTeamNames.length > 0) {
+    console.log('[E2E] Teams created during tests (for cleanup reference):');
+    createdTeamNames.forEach((name) => {
+      console.log(`  - ${name}`);
+    });
+  }
+
   console.log('[E2E] Test suite completed.');
 });
