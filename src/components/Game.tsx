@@ -261,6 +261,17 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
         lives: number;
         correctInLevel: number;
         gameState: GameState;
+        answerBlocks: Array<{
+          position: 'left' | 'center' | 'right';
+          value: string | number;
+          isCorrect: boolean;
+          x: number;
+          y: number;
+        }>;
+        currentProblem: {
+          displayString: string;
+          correctAnswer: number | string;
+        } | null;
       };
     }
 
@@ -270,7 +281,18 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
         level: score.level,
         lives: score.lives,
         correctInLevel: score.correctInLevel,
-        gameState: gameState
+        gameState: gameState,
+        answerBlocks: answerBlocks.map((block, index) => ({
+          position: (['left', 'center', 'right'] as const)[index],
+          value: block.value,
+          isCorrect: block.isCorrect,
+          x: block.x,
+          y: block.y
+        })),
+        currentProblem: currentProblem ? {
+          displayString: currentProblem.displayString,
+          correctAnswer: currentProblem.correctAnswer
+        } : null
       };
     }
     return () => {
@@ -278,7 +300,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
         delete (window as WindowWithGameState).__gameState;
       }
     };
-  }, [score, gameState]);
+  }, [score, gameState, answerBlocks, currentProblem]);
 
   // Calculate speed based on time-based difficulty system
   const getCurrentSpeed = useCallback((): number => {
