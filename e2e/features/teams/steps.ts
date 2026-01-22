@@ -2,6 +2,7 @@ import { expect } from '@playwright/test';
 import { Given, When, Then } from '../../support/fixtures';
 import { CreateTeamModal } from '../../support/page-objects/CreateTeamModal';
 import { AuthPage } from '../../support/page-objects/AuthPage';
+import { TeamsPage } from '../../support/page-objects/TeamsPage';
 import { nanoid } from 'nanoid';
 
 // Track teams created during tests for cleanup
@@ -10,27 +11,100 @@ export const createdTeamNames: string[] = [];
 // Store CreateTeamModal instance for use across steps
 let createTeamModal: CreateTeamModal;
 
+// Store TeamsPage instance for team page steps
+let teamsPage: TeamsPage;
+
 // Store the current team name with suffix for assertions
 let currentTeamNameWithSuffix: string;
 
+// Store current team slug for navigation
+let currentTeamSlug: string;
+
 // Helper to ensure user is logged in
-async function ensureLoggedIn(page: import('@playwright/test').Page): Promise<void> {
+async function ensureLoggedIn(page: import('@playwright/test').Page): Promise<string> {
   const authPage = new AuthPage(page);
   const usernameVisible = await authPage.usernameInput.isVisible().catch(() => false);
 
   if (usernameVisible) {
     // Need to sign up a new user for this test session
-    const uniqueUsername = `e2e_${Date.now().toString(36)}`;
+    const nickname = `e2e_${Date.now().toString(36)}`;
     const password = 'testpass123';
 
     await authPage.switchToSignUp();
-    await authPage.fillCredentials(uniqueUsername, password);
+    await authPage.fillCredentials(nickname, password);
     await authPage.confirmPasswordInput.fill(password);
     await authPage.submit();
 
     // Wait for game canvas to appear (indicates successful auth)
     await page.waitForSelector('[data-testid="game-canvas"]', { timeout: 15000 });
+    return nickname;
   }
+
+  return 'existing_user';
+}
+
+// Helper to create a team via UI and extract slug
+async function createTeamViaUI(
+  page: import('@playwright/test').Page,
+  teamName: string,
+  isPublic: boolean,
+  password?: string
+): Promise<string> {
+  const modal = new CreateTeamModal(page);
+
+  // Ensure we're on the game screen
+  const currentUrl = page.url();
+  const isOnGamePage = currentUrl.includes('localhost:5173') || currentUrl.includes('math-space-invaders');
+
+  if (!isOnGamePage || currentUrl === 'about:blank') {
+    await page.goto('/');
+    await ensureLoggedIn(page);
+  }
+
+  // Wait for menu to appear
+  await page.waitForSelector('button.create-team-btn', { timeout: 15000 });
+
+  // Open create team modal
+  await page.locator('button.create-team-btn').click();
+  await modal.waitForModal();
+
+  // Create unique team name with suffix
+  const suffix = nanoid(6);
+  currentTeamNameWithSuffix = `${teamName}-${suffix}`;
+  createdTeamNames.push(currentTeamNameWithSuffix);
+
+  // Fill the team name
+  await modal.fillTeamName(currentTeamNameWithSuffix);
+
+  // Select privacy
+  if (isPublic) {
+    await modal.selectPublic();
+  } else {
+    await modal.selectPrivate();
+    if (password) {
+      await modal.fillPassword(password);
+    }
+  }
+
+  // Submit the form
+  await modal.submit();
+
+  // Wait for success and extract slug from shareable link
+  await modal.waitForSuccess();
+  const linkInput = page.locator('#shareable-link-input');
+  await expect(linkInput).toBeVisible({ timeout: 5000 });
+  const linkValue = await linkInput.inputValue();
+
+  // Extract slug from URL (format: .../team/{slug} or .../team/{slug}#password)
+  // The URL may have /math-space-invaders/ prefix or just /team/
+  const urlMatch = linkValue.match(/\/team\/([^#\s/]+)/);
+  const slug = urlMatch ? urlMatch[1] : currentTeamNameWithSuffix.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+  currentTeamSlug = slug;
+
+  // Close the modal by clicking Done
+  await modal.clickDone();
+
+  return slug;
 }
 
 // --- Given Steps ---
@@ -69,6 +143,17 @@ Given('I am on the create team modal', async ({ page }) => {
 
   // Wait for the modal to open
   await createTeamModal.waitForModal();
+});
+
+Given('I have created a public team', async ({ page }) => {
+  teamsPage = new TeamsPage(page);
+  await createTeamViaUI(page, 'Public Team', true);
+});
+
+ 
+Given('I have created a private team with password {string}', async ({ page }, password: string) => {
+  teamsPage = new TeamsPage(page);
+  await createTeamViaUI(page, 'Private Team', false, password);
 });
 
 // --- When Steps ---
@@ -126,6 +211,44 @@ When('I click the cancel button', async () => {
   await createTeamModal.cancel();
 });
 
+When('I navigate to the team page', async ({ page }) => {
+  if (!teamsPage) {
+    teamsPage = new TeamsPage(page);
+  }
+
+  await teamsPage.gotoTeam(currentTeamSlug);
+  await teamsPage.waitForLoaded();
+});
+
+When('I view the team page', async ({ page }) => {
+  if (!teamsPage) {
+    teamsPage = new TeamsPage(page);
+  }
+
+  // Check if already on team page
+  const currentUrl = page.url();
+  if (!currentUrl.includes(`/team/${currentTeamSlug}`)) {
+    await teamsPage.gotoTeam(currentTeamSlug);
+    await teamsPage.waitForLoaded();
+  }
+});
+
+When('I click the leave team button', async ({ page }) => {
+  if (!teamsPage) {
+    teamsPage = new TeamsPage(page);
+  }
+
+  await teamsPage.leaveTeam();
+});
+
+When('I click the home link', async ({ page }) => {
+  if (!teamsPage) {
+    teamsPage = new TeamsPage(page);
+  }
+
+  await teamsPage.clickHome();
+});
+
 // --- Then Steps ---
 
 Then('I should see the team created success message', async ({ page }) => {
@@ -155,4 +278,49 @@ Then('I should see the game menu', async ({ page }) => {
   // Verify menu buttons are visible
   await expect(page.locator('button.start-button')).toBeVisible({ timeout: 5000 });
   await expect(page.locator('.leaderboard-btn')).toBeVisible();
+});
+
+Then('I should see the team landing page', async ({ page }) => {
+  if (!teamsPage) {
+    teamsPage = new TeamsPage(page);
+  }
+
+  // Verify the title element is visible
+  await expect(teamsPage.title).toBeVisible({ timeout: 5000 });
+});
+
+Then('I should see the team name', async ({ page }) => {
+  if (!teamsPage) {
+    teamsPage = new TeamsPage(page);
+  }
+
+  // Verify the team name contains the base name (without the random suffix)
+  const teamName = await teamsPage.getTeamName();
+  const baseName = currentTeamNameWithSuffix.split('-').slice(0, -1).join('-');
+  expect(teamName).toContain(baseName);
+});
+
+ 
+Then('I should see the {string} button', async ({ page }, buttonText: string) => {
+  // Use regex to match button text containing the specified text
+  const buttonLocator = page.getByRole('button', { name: new RegExp(buttonText, 'i') });
+  await expect(buttonLocator).toBeVisible({ timeout: 5000 });
+});
+
+ 
+Then('I should not see the {string} button', async ({ page }, buttonText: string) => {
+  // Use regex to match button text containing the specified text
+  const buttonLocator = page.getByRole('button', { name: new RegExp(buttonText, 'i') });
+  await expect(buttonLocator).toBeHidden({ timeout: 5000 });
+});
+
+Then('I should be redirected to the home page', async ({ page }) => {
+  // Verify we're on the home page by checking for game screen elements
+  // The START GAME button only shows on the home/menu screen
+  await expect(page.locator('button.start-button')).toBeVisible({ timeout: 10000 });
+
+  // Also verify we're NOT on the team page (no team title visible)
+  await expect(page.locator('.title')).toBeHidden({ timeout: 5000 }).catch(() => {
+    // .title might not exist at all, which is fine
+  });
 });

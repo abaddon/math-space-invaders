@@ -55,7 +55,8 @@ export class TeamsPage extends BasePage {
    * @param slug - Team URL slug
    */
   async gotoTeam(slug: string): Promise<void> {
-    await super.goto(`/team/${slug}`);
+    // Use relative path (no leading slash) to be relative to baseURL
+    await super.goto(`team/${slug}`);
     await this.waitForPageLoad();
   }
 
@@ -65,7 +66,8 @@ export class TeamsPage extends BasePage {
    * @param password - Password to include in hash
    */
   async gotoTeamWithPassword(slug: string, password: string): Promise<void> {
-    await super.goto(`/team/${slug}#${password}`);
+    // Use relative path (no leading slash) to be relative to baseURL
+    await super.goto(`team/${slug}#${password}`);
     await this.waitForPageLoad();
   }
 

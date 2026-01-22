@@ -19,7 +19,7 @@ export default defineConfig({
   outputDir: 'test-results',
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5173/math-space-invaders/',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     viewport: { width: 1920, height: 1080 },

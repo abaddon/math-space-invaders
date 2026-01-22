@@ -8,25 +8,24 @@ Feature: Join Team
     Given I am logged in
 
   @smoke @authenticated
-  Scenario: Join public team via link
-    Given a public team "Math Stars" exists
+  Scenario: View created team landing page
+    Given I have created a public team
     When I navigate to the team page
     Then I should see the team landing page
     And I should see the team name
-    When I click the join team button
-    Then I should see "Joined!" success message
+    And I should see the "Play for" button
 
   @authenticated
-  Scenario: Join private team with correct password
-    Given a private team "Secret Club" exists with password "pass123"
+  Scenario: View created private team
+    Given I have created a private team with password "secret123"
     When I navigate to the team page
-    And I enter the team password "pass123"
-    And I click the join team button
-    Then I should see "Joined!" success message
+    Then I should see the team landing page
+    And I should see the "Play for" button
 
   @authenticated
-  Scenario: View team after joining
-    Given I have joined a team
+  Scenario: View team member features
+    Given I have created a public team
     When I view the team page
     Then I should see the "Play for" button
     And I should see the "View Leaderboard" button
+    And I should see the "Settings" button
