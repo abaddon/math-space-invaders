@@ -25,6 +25,8 @@ export default defineConfig({
     viewport: { width: 1920, height: 1080 },
     actionTimeout: 10000,
     headless: true,
+    // Disable touch to ensure canvas clicks work (game disables canvas click on touch devices)
+    hasTouch: false,
   },
 
   projects: [

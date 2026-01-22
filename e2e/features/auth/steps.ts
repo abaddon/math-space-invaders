@@ -67,10 +67,27 @@ Then('I should see an error containing {string}', async ({ page }, errorPhrase: 
 // --- Session/Logout Given Steps ---
 
 Given('I am logged in', async ({ page }) => {
-  // For @authenticated tests, storageState is loaded automatically
-  // Just navigate to app and verify we're on game screen
+  // Navigate to app
   await page.goto('/');
-  await page.waitForSelector('[data-testid="game-canvas"]', { timeout: 15000 });
+
+  // Check if we're on the auth page (login screen visible)
+  const authPage = new AuthPage(page);
+  const usernameVisible = await authPage.usernameInput.isVisible().catch(() => false);
+
+  if (usernameVisible) {
+    // Need to sign up a new user for this test session
+    const uniqueUsername = `e2e_${Date.now().toString(36)}`;
+    const password = 'testpass123';
+
+    await authPage.switchToSignUp();
+    await authPage.fillCredentials(uniqueUsername, password);
+    await authPage.confirmPasswordInput.fill(password);
+    await authPage.submit();
+  }
+
+  // Wait for game content to appear (either canvas or start button, depending on game state)
+  // The game canvas exists in PLAYING state, start button in MENU state
+  await page.waitForSelector('[data-testid="game-canvas"], button.start-button', { timeout: 15000 });
 });
 
 Given('I have no active session', async ({ page }) => {

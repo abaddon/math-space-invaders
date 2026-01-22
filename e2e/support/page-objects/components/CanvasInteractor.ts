@@ -10,12 +10,14 @@ import { Page, Locator } from '@playwright/test';
  */
 export class CanvasInteractor {
   private canvas: Locator;
+  private page: Page;
 
   /**
    * @param page - Playwright Page instance
    * @param canvasSelector - CSS selector for canvas element (default: '[data-testid="game-canvas"]')
    */
   constructor(page: Page, canvasSelector: string = '[data-testid="game-canvas"]') {
+    this.page = page;
     this.canvas = page.locator(canvasSelector);
   }
 
@@ -47,28 +49,59 @@ export class CanvasInteractor {
   }
 
   /**
-   * Click on one of the three answer blocks at the top of the canvas.
+   * Fire a projectile aimed at the specified answer block column.
    *
-   * Maps semantic positions to percentage-based coordinates:
-   * - left: 20% horizontal, 15% vertical
-   * - center: 50% horizontal, 15% vertical
-   * - right: 80% horizontal, 15% vertical
+   * Game mechanics: Clicking on the canvas moves the spaceship to the click X position
+   * and fires a projectile straight up. The projectile hits whichever answer block
+   * is directly above the spaceship. So we click at the X position of the target
+   * answer column but at the bottom of the canvas where the spaceship is.
    *
-   * @param position - Which answer block to click: 'left', 'center', or 'right'
+   * Maps semantic positions to percentage-based X coordinates:
+   * - left: 20% horizontal
+   * - center: 50% horizontal
+   * - right: 80% horizontal
+   *
+   * Y coordinate is always 85% (near the bottom where spaceship can be positioned)
+   *
+   * @param position - Which answer block to aim at: 'left', 'center', or 'right'
    *
    * @example
-   * // Click the center answer block
+   * // Fire at the center answer block
    * await canvasInteractor.clickAnswerBlock('center');
    */
   async clickAnswerBlock(position: 'left' | 'center' | 'right'): Promise<void> {
-    const positionMap: Record<'left' | 'center' | 'right', { x: number; y: number }> = {
-      left: { x: 20, y: 15 },
-      center: { x: 50, y: 15 },
-      right: { x: 80, y: 15 },
+    const xPositionMap: Record<'left' | 'center' | 'right', number> = {
+      left: 20,
+      center: 50,
+      right: 80,
     };
 
-    const coords = positionMap[position];
-    await this.clickAtPercent(coords.x, coords.y);
+    const x = xPositionMap[position];
+
+    // Use keyboard to move spaceship to correct position and fire
+    // This is more reliable than mouse clicks which may be ignored on touch-detected devices
+    const targetPercent = x;
+    const currentPercent = 50; // Spaceship starts at center
+
+    // Move spaceship left or right using arrow keys
+    if (targetPercent < currentPercent) {
+      // Need to move left - hold left arrow briefly
+      const keysToPress = Math.floor((currentPercent - targetPercent) / 5);
+      for (let i = 0; i < keysToPress; i++) {
+        await this.page.keyboard.press('ArrowLeft');
+        await this.page.waitForTimeout(50);
+      }
+    } else if (targetPercent > currentPercent) {
+      // Need to move right - hold right arrow briefly
+      const keysToPress = Math.floor((targetPercent - currentPercent) / 5);
+      for (let i = 0; i < keysToPress; i++) {
+        await this.page.keyboard.press('ArrowRight');
+        await this.page.waitForTimeout(50);
+      }
+    }
+
+    // Fire projectile with Space key
+    await this.page.keyboard.press('Space');
   }
 
   /**

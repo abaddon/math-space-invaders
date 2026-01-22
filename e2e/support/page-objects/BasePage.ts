@@ -22,11 +22,12 @@ export abstract class BasePage {
   }
 
   /**
-   * Wait for page to reach networkidle state.
-   * Useful after navigation or after triggering network requests.
+   * Wait for page to reach domcontentloaded state.
+   * Note: We use domcontentloaded instead of networkidle because
+   * Firebase maintains persistent connections that prevent networkidle.
    */
   async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   /**
