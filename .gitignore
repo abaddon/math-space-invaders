@@ -32,3 +32,4 @@ coverage
 test-results
 playwright-report
 .features-gen
+e2e/.auth
