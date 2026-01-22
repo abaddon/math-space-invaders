@@ -67,3 +67,35 @@ Feature: Authentication
     When I enter username "testuser" and password ""
     And I click the submit button
     Then I should see an error containing "enter a password"
+
+  # --- Session Persistence Scenarios ---
+
+  @authenticated
+  Scenario: Session persists after page reload
+    Given I am logged in
+    When I reload the page
+    Then I should still be on the game screen
+    And I should not see the login form
+
+  @authenticated
+  Scenario: Session persists after navigation
+    Given I am logged in
+    When I navigate away and return
+    Then I should still be on the game screen
+
+  # --- Logout Scenarios ---
+
+  @authenticated
+  Scenario: User can logout
+    Given I am logged in
+    When I click the logout button
+    Then I should be redirected to the login page
+    And the auth token should be cleared from localStorage
+
+  # --- Protected Routes ---
+
+  @unauthenticated
+  Scenario: Unauthenticated user sees login screen
+    Given I have no active session
+    When I navigate to the app
+    Then I should see the authentication page
