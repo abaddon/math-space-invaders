@@ -6,6 +6,9 @@ import { AuthPage } from '../../support/page-objects/AuthPage';
 let generatedUsername: string;
 let generatedPassword: string;
 
+// Session key constant
+const SESSION_KEY = 'mathInvaders_session';
+
 // --- Given Steps ---
 
 Given('I am on the authentication page', async ({ page }) => {
@@ -59,4 +62,66 @@ Then('I should see the game canvas', async ({ page }) => {
 Then('I should see an error containing {string}', async ({ page }, errorPhrase: string) => {
   const authPage = new AuthPage(page);
   await expect(authPage.errorMessage).toContainText(errorPhrase);
+});
+
+// --- Session/Logout Given Steps ---
+
+Given('I am logged in', async ({ page }) => {
+  // For @authenticated tests, storageState is loaded automatically
+  // Just navigate to app and verify we're on game screen
+  await page.goto('/');
+  await page.waitForSelector('[data-testid="game-canvas"]', { timeout: 15000 });
+});
+
+Given('I have no active session', async ({ page }) => {
+  // Clear localStorage before navigating
+  await page.goto('/');
+  await page.evaluate(() => localStorage.clear());
+});
+
+// --- Session/Logout When Steps ---
+
+When('I reload the page', async ({ page }) => {
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+});
+
+When('I navigate away and return', async ({ page }) => {
+  await page.goto('about:blank');
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+});
+
+When('I click the logout button', async ({ page }) => {
+  await page.locator('[data-testid="logout-button"]').click();
+});
+
+When('I navigate to the app', async ({ page }) => {
+  await page.goto('/');
+});
+
+// --- Session/Logout Then Steps ---
+
+Then('I should still be on the game screen', async ({ page }) => {
+  await expect(page.locator('[data-testid="game-canvas"]')).toBeVisible({ timeout: 10000 });
+});
+
+Then('I should not see the login form', async ({ page }) => {
+  const authPage = new AuthPage(page);
+  await expect(authPage.usernameInput).not.toBeVisible();
+});
+
+Then('I should be redirected to the login page', async ({ page }) => {
+  const authPage = new AuthPage(page);
+  await authPage.waitForAuthScreen();
+});
+
+Then('the auth token should be cleared from localStorage', async ({ page }) => {
+  const session = await page.evaluate((key) => localStorage.getItem(key), SESSION_KEY);
+  expect(session).toBeNull();
+});
+
+Then('I should see the authentication page', async ({ page }) => {
+  const authPage = new AuthPage(page);
+  await authPage.waitForAuthScreen();
 });
