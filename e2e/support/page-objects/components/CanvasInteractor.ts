@@ -9,7 +9,6 @@ import { Page, Locator } from '@playwright/test';
  * on the canvas's actual bounding box.
  */
 export class CanvasInteractor {
-  private page: Page;
   private canvas: Locator;
 
   /**
@@ -17,7 +16,6 @@ export class CanvasInteractor {
    * @param canvasSelector - CSS selector for canvas element (default: '[data-testid="game-canvas"]')
    */
   constructor(page: Page, canvasSelector: string = '[data-testid="game-canvas"]') {
-    this.page = page;
     this.canvas = page.locator(canvasSelector);
   }
 
