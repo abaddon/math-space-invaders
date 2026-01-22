@@ -83,4 +83,57 @@ export class GamePage extends BasePage {
   async getGameState(): Promise<string> {
     return await this.hud.getGameState();
   }
+
+  /**
+   * Get answer blocks from game state (convenience wrapper).
+   * @returns Array of answer blocks with position, value, isCorrect
+   */
+  async getAnswerBlocks() {
+    return await this.hud.getAnswerBlocks();
+  }
+
+  /**
+   * Get current math problem from game state (convenience wrapper).
+   * @returns Current problem with displayString and correctAnswer, or null
+   */
+  async getCurrentProblem() {
+    return await this.hud.getCurrentProblem();
+  }
+
+  /**
+   * Find the position of the correct answer block.
+   * @returns Position of correct block ('left', 'center', or 'right')
+   * @throws Error if no correct answer block is found
+   */
+  async findCorrectAnswerPosition(): Promise<'left' | 'center' | 'right'> {
+    const blocks = await this.hud.getAnswerBlocks();
+    const correctBlock = blocks.find(b => b.isCorrect);
+    if (!correctBlock) {
+      throw new Error('No correct answer block found');
+    }
+    return correctBlock.position;
+  }
+
+  /**
+   * Click the correct answer block dynamically.
+   * Finds which block has isCorrect=true and clicks it.
+   */
+  async clickCorrectAnswer(): Promise<void> {
+    const position = await this.findCorrectAnswerPosition();
+    await this.clickAnswerBlock(position);
+  }
+
+  /**
+   * Click a wrong answer block dynamically.
+   * Finds a block with isCorrect=false and clicks it.
+   * @throws Error if no wrong answer block is found
+   */
+  async clickWrongAnswer(): Promise<void> {
+    const blocks = await this.hud.getAnswerBlocks();
+    const wrongBlock = blocks.find(b => !b.isCorrect);
+    if (!wrongBlock) {
+      throw new Error('No wrong answer block found');
+    }
+    await this.clickAnswerBlock(wrongBlock.position);
+  }
 }

@@ -1,6 +1,25 @@
 import { Page } from '@playwright/test';
 
 /**
+ * Type definition for answer block exposed in game state.
+ */
+interface AnswerBlock {
+  position: 'left' | 'center' | 'right';
+  value: string | number;
+  isCorrect: boolean;
+  x: number;
+  y: number;
+}
+
+/**
+ * Type definition for current problem exposed in game state.
+ */
+interface CurrentProblem {
+  displayString: string;
+  correctAnswer: number | string;
+}
+
+/**
  * Type definition for the game state exposed on window object.
  */
 interface GameState {
@@ -8,6 +27,8 @@ interface GameState {
   level?: number;
   lives?: number;
   gameState?: string;
+  answerBlocks?: AnswerBlock[];
+  currentProblem?: CurrentProblem | null;
 }
 
 /**
@@ -68,5 +89,38 @@ export class HUDComponent {
    */
   async getGameState(): Promise<string> {
     return await this.page.evaluate(() => (window as WindowWithGameState).__gameState?.gameState ?? 'MENU');
+  }
+
+  /**
+   * Get the answer blocks from game state.
+   * @returns Array of answer blocks with position, value, isCorrect
+   */
+  async getAnswerBlocks(): Promise<Array<{
+    position: 'left' | 'center' | 'right';
+    value: string | number;
+    isCorrect: boolean;
+  }>> {
+    return await this.page.evaluate(() => {
+      const state = (window as WindowWithGameState).__gameState;
+      return state?.answerBlocks?.map(block => ({
+        position: block.position,
+        value: block.value,
+        isCorrect: block.isCorrect
+      })) || [];
+    });
+  }
+
+  /**
+   * Get the current math problem from game state.
+   * @returns Current problem with displayString and correctAnswer, or null
+   */
+  async getCurrentProblem(): Promise<{
+    displayString: string;
+    correctAnswer: number | string;
+  } | null> {
+    return await this.page.evaluate(() => {
+      const state = (window as WindowWithGameState).__gameState;
+      return state?.currentProblem || null;
+    });
   }
 }
