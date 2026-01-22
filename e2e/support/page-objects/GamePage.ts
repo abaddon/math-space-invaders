@@ -145,32 +145,48 @@ export class GamePage extends BasePage {
   }
 
   /**
-   * Fire at a specific block using canvas click with precise coordinates.
-   * Canvas click positions spaceship at click X and fires in one action.
+   * Fire at a specific block using keyboard controls.
+   * This bypasses the isTouchDevice check in the game's canvas click handler.
    *
-   * @param position - Target column (unused, kept for API compatibility)
-   * @param targetX - Target X coordinate from answer block
+   * Strategy:
+   * 1. Click anywhere on page to ensure focus
+   * 2. Use A/D keys to move spaceship to target position
+   * 3. Press Space to fire
+   *
+   * @param position - Target column: 'left', 'center', or 'right'
+   * @param _targetX - X coordinate (unused, position determines movement)
    */
-  private async fireAtBlock(position: 'left' | 'center' | 'right', targetX: number): Promise<void> {
-    // Log position for debugging (prevents unused var error)
-    console.log(`Firing at ${position} position, X=${targetX}`);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async fireAtBlock(position: 'left' | 'center' | 'right', _targetX: number): Promise<void> {
+    // Ensure page has focus by clicking on the body
+    await this.page.click('body', { force: true });
+    await this.page.waitForTimeout(150);
 
-    const canvasLocator = this.page.locator('[data-testid="game-canvas"]');
-    const box = await canvasLocator.boundingBox();
-    if (!box) {
-      throw new Error('Canvas not found');
+    // Move spaceship using keyboard (A=left, D=right)
+    // Movement speed is ~5 units per key press, canvas is ~500 units
+    // So ~8 presses to move from center (50%) to edge (20% or 80%)
+    const keyCount = 10; // Extra buffer to ensure we reach the target
+
+    if (position === 'left') {
+      for (let i = 0; i < keyCount; i++) {
+        await this.page.keyboard.press('a');
+        await this.page.waitForTimeout(50);
+      }
+    } else if (position === 'right') {
+      for (let i = 0; i < keyCount; i++) {
+        await this.page.keyboard.press('d');
+        await this.page.waitForTimeout(50);
+      }
     }
+    // Center = no movement needed (spaceship starts at center)
 
-    // Click at target X position, Y near bottom where spaceship can be positioned
-    // Canvas click both moves spaceship to X and fires projectile
-    const clickY = box.height * 0.85;
+    // Ensure spaceship has reached position
+    await this.page.waitForTimeout(150);
 
-    await canvasLocator.click({
-      position: { x: targetX, y: clickY },
-      force: true
-    });
+    // Fire with Space
+    await this.page.keyboard.press('Space');
 
-    // Wait for projectile to reach target (animation time)
-    await this.page.waitForTimeout(500);
+    // Wait for projectile to travel and hit (projectile is fast but need buffer)
+    await this.page.waitForTimeout(2000);
   }
 }
