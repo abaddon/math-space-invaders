@@ -150,8 +150,9 @@ export class GamePage extends BasePage {
    *
    * Strategy:
    * 1. Click anywhere on page to ensure focus
-   * 2. Use A/D keys to move spaceship to target position
-   * 3. Press Space to fire
+   * 2. Reset spaceship position by moving to left edge first
+   * 3. Use D key to move spaceship to target position
+   * 4. Press Space to fire
    *
    * @param position - Target column: 'left', 'center', or 'right'
    * @param _targetX - X coordinate (unused, position determines movement)
@@ -162,23 +163,31 @@ export class GamePage extends BasePage {
     await this.page.click('body', { force: true });
     await this.page.waitForTimeout(150);
 
-    // Move spaceship using keyboard (A=left, D=right)
-    // Movement speed is ~5 units per key press, canvas is ~500 units
-    // So ~8 presses to move from center (50%) to edge (20% or 80%)
-    const keyCount = 10; // Extra buffer to ensure we reach the target
-
-    if (position === 'left') {
-      for (let i = 0; i < keyCount; i++) {
-        await this.page.keyboard.press('a');
-        await this.page.waitForTimeout(50);
-      }
-    } else if (position === 'right') {
-      for (let i = 0; i < keyCount; i++) {
-        await this.page.keyboard.press('d');
-        await this.page.waitForTimeout(50);
-      }
+    // Reset spaceship to left edge first (ensures consistent starting position)
+    // This is necessary because the spaceship doesn't reset between rounds
+    const resetKeyCount = 15;
+    for (let i = 0; i < resetKeyCount; i++) {
+      await this.page.keyboard.press('a');
+      await this.page.waitForTimeout(30);
     }
-    // Center = no movement needed (spaceship starts at center)
+    await this.page.waitForTimeout(100);
+
+    // Now move from left edge to target position using D key
+    // Movement speed is ~5 units per key press, canvas is ~500 units
+    // Left edge = 0 moves, Center = ~10 moves, Right edge = ~20 moves
+    let moveCount = 0;
+    if (position === 'left') {
+      moveCount = 0; // Already at left edge
+    } else if (position === 'center') {
+      moveCount = 10; // Move to center
+    } else if (position === 'right') {
+      moveCount = 20; // Move to right edge
+    }
+
+    for (let i = 0; i < moveCount; i++) {
+      await this.page.keyboard.press('d');
+      await this.page.waitForTimeout(30);
+    }
 
     // Ensure spaceship has reached position
     await this.page.waitForTimeout(150);

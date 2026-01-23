@@ -22,8 +22,9 @@ async function ensureLoggedIn(page: import('@playwright/test').Page): Promise<vo
     await authPage.confirmPasswordInput.fill(password);
     await authPage.submit();
 
-    // Wait for game canvas to appear (indicates successful auth)
-    await page.waitForSelector('[data-testid="game-canvas"]', { timeout: 15000 });
+    // Wait for game content to appear (either canvas in PLAYING state or start button in MENU state)
+    // After signup, user lands on MENU state with the start button visible
+    await page.waitForSelector('[data-testid="game-canvas"], button.start-button', { timeout: 15000 });
   }
 }
 

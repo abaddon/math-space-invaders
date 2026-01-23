@@ -51,8 +51,9 @@ When('I click the submit button', async ({ page }) => {
 // --- Then Steps ---
 
 Then('I should be redirected to the game', async ({ page }) => {
-  // Wait for game canvas to appear (indicates successful auth)
-  await page.waitForSelector('[data-testid="game-canvas"]', { timeout: 10000 });
+  // Wait for game content to appear (either canvas in PLAYING state or start button in MENU state)
+  // After signup, user lands on MENU state with the start button visible
+  await page.waitForSelector('[data-testid="game-canvas"], button.start-button', { timeout: 10000 });
 });
 
 Then('I should see the game canvas', async ({ page }) => {
