@@ -31,5 +31,6 @@ coverage
 # Playwright
 test-results
 playwright-report
+blob-report
 .features-gen
 e2e/.auth
