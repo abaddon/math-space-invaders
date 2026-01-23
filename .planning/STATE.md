@@ -16,7 +16,7 @@
 ## Current Position
 
 **Active Phase:** Phase 6 - CI/CD Integration
-**Status:** In Progress - Completed 06-01-PLAN.md (Firebase Emulator)
+**Status:** In Progress - Completed 06-03-PLAN.md (E2E Test Workflow)
 
 **Progress:**
 ```
@@ -25,9 +25,9 @@
 [████████████████████] 100% - Phase 3: Authentication E2E Tests (7/7) ✅
 [████████████████████] 100% - Phase 4: Gameplay E2E Tests (8/8) ✅
 [██████████████░░░░░░] 69% - Phase 5: Feature Coverage (9/13, 4 blocked) ✅
-[████░░░░░░░░░░░░░░░░] 20% - Phase 6: CI/CD Integration (1/5)
+[████████████░░░░░░░░] 60% - Phase 6: CI/CD Integration (3/5)
 
-Overall: 34/36 requirements (94%)
+Overall: 36/38 requirements (95%)
 ```
 
 ---
@@ -36,7 +36,7 @@ Overall: 34/36 requirements (94%)
 
 **Milestone Start:** 2026-01-22
 **Days Elapsed:** 1
-**Completion Rate:** 34 requirements total
+**Completion Rate:** 36 requirements total
 **Estimated Remaining:** 2 requirements (CI/CD integration)
 
 **Phase History:**
@@ -50,9 +50,10 @@ Overall: 34/36 requirements (94%)
   - 05-03: 2 min - TeamsPage and CreateTeamModal
   - 05-04: 5 min - Team creation BDD scenarios
   - 05-05: 14 min - Team join and management scenarios
-- Phase 6 (CI/CD Integration): 2 plans started, ~7 min total (2026-01-23)
+- Phase 6 (CI/CD Integration): 3 plans completed, ~8 min total (2026-01-23)
   - 06-01: 4 min - Firebase Emulator setup
   - 06-02: 3 min - CI configuration update (blob reporter, workers)
+  - 06-03: 1 min - GitHub Actions E2E workflow with sharding
 
 ---
 
@@ -98,6 +99,10 @@ Overall: 34/36 requirements (94%)
 | 2 workers in CI mode | Matches GitHub Actions 2-core Ubuntu runners | 06-02 |
 | Firebase Emulator for E2E tests | Isolated test environment, no production writes | 06-01 |
 | Demo project ID for emulator | No real Firebase project needed in CI | 06-01 |
+| 4 shards for E2E parallelization | Balances CI resource usage with speed (4x faster) | 06-03 |
+| wait-on for emulator readiness | Polls endpoints until ready, preventing premature test starts | 06-03 |
+| Tiered artifact retention | 1/7/14 days for blob/test-results/HTML reports | 06-03 |
+| Upload test results only on failure | Saves bandwidth/storage (screenshots/videos ~5-10 MB) | 06-03 |
 
 ### Blockers
 
@@ -118,31 +123,30 @@ Overall: 34/36 requirements (94%)
 ## Session Continuity
 
 **Last Session Summary:**
-Completed plan 06-01 (Firebase Emulator Setup). Configured Firebase Emulator infrastructure for isolated E2E testing:
-- firebase.json with auth (9099) and firestore (8080) emulators
-- firebase-tools and wait-on dependencies installed
-- firebase-helpers.ts updated with conditional emulator connection
-- USE_FIREBASE_EMULATOR flag enables emulator mode
+Completed plan 06-03 (E2E Test Workflow). Created GitHub Actions workflow for automated E2E testing:
+- e2e-tests.yml with 4-shard matrix execution
+- Firebase Emulator integration with Java setup
+- Artifact management (blob reports, test results, HTML report)
+- Badge added to README.md
 
 Verification successful:
-- Emulator starts on ports 9099 and 8080
-- TypeScript compilation passes
-- Emulator UI accessible at http://127.0.0.1:4000
+- Workflow YAML validates key elements (matrix, shardIndex, emulator, blob-report)
+- E2E badge present in README
+- Both tasks committed atomically
 
 **Next Session Goals:**
-- Continue Phase 6 execution
-- Complete GitHub Actions workflow configuration
-- Test emulator integration in CI
+- Push to main/create PR to trigger first workflow run
+- Verify 4 shards execute successfully in parallel
+- Monitor workflow performance (target <10 minutes)
+- Consider returning to Phase 5 gaps (TEAM-02, TEAM-03, TEAM-08, TEAM-09)
 
 **Context for Next Claude:**
-Phase 6 in progress (2/5 requirements complete - 06-01 and 06-02 done). Firebase Emulator configured and ready for CI integration.
+Phase 6 Wave 2 complete (3/5 requirements - 06-01, 06-02, 06-03 done). E2E CI infrastructure fully configured and ready for production use.
 
-Remaining Phase 6 requirements:
-- CI-03: GitHub Actions workflow with emulator + sharding
-- CI-04: Report merging job
-- CI-05: Workflow optimization
+Remaining Phase 6 requirements (Wave 3):
+- Additional workflow optimizations or enhancements (optional)
 
-**IMPORTANT:** Phase 5 multi-user testing gaps (TEAM-02, TEAM-03, TEAM-08, TEAM-09) are now unblocked with emulator setup. Can be revisited after CI complete.
+**IMPORTANT:** Phase 5 multi-user testing gaps (TEAM-02, TEAM-03, TEAM-08, TEAM-09) are now unblocked with emulator setup. Can be revisited for complete feature coverage.
 
 ---
 
@@ -180,6 +184,10 @@ Remaining Phase 6 requirements:
 **Plan 06-02:**
 - playwright.config.ts (CI reporter and workers config)
 - .gitignore (added blob-report)
+
+**Plan 06-03:**
+- .github/workflows/e2e-tests.yml (107 lines - matrix workflow)
+- README.md (added E2E Tests badge)
 
 **Total E2E Test Scenarios:** 22
 - Auth: 5 scenarios
