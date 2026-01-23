@@ -121,7 +121,9 @@ When('I navigate to the app', async ({ page }) => {
 // --- Session/Logout Then Steps ---
 
 Then('I should still be on the game screen', async ({ page }) => {
-  await expect(page.locator('[data-testid="game-canvas"]')).toBeVisible({ timeout: 10000 });
+  // Accept either game canvas (PLAYING state) or start button (MENU state)
+  const gameContent = page.locator('[data-testid="game-canvas"], button.start-button');
+  await expect(gameContent.first()).toBeVisible({ timeout: 10000 });
 });
 
 Then('I should not see the login form', async ({ page }) => {

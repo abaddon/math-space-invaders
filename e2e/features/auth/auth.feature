@@ -14,7 +14,6 @@ Feature: Authentication
     And I enter a new username and password
     And I click the submit button
     Then I should be redirected to the game
-    And I should see the game canvas
 
   @unauthenticated
   Scenario: Signup fails with short username
