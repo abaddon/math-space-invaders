@@ -145,57 +145,70 @@ export class GamePage extends BasePage {
   }
 
   /**
-   * Fire at a specific block using keyboard controls.
-   * This bypasses the isTouchDevice check in the game's canvas click handler.
+   * Fire at a specific block using the actual X coordinate from game state.
    *
    * Strategy:
-   * 1. Click anywhere on page to ensure focus
-   * 2. Reset spaceship position by moving to left edge first
-   * 3. Use D key to move spaceship to target position
+   * 1. Get current spaceship X position and canvas width from game state
+   * 2. Calculate the exact movement needed (target X - current X)
+   * 3. Use keyboard keys to move to precise position
    * 4. Press Space to fire
+   * 5. Wait for projectile to hit
    *
-   * @param position - Target column: 'left', 'center', or 'right'
-   * @param _targetX - X coordinate (unused, position determines movement)
+   * @param _position - Target column (unused, targetX is authoritative)
+   * @param targetX - Actual X coordinate of the target block from game state
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private async fireAtBlock(position: 'left' | 'center' | 'right', _targetX: number): Promise<void> {
-    // Ensure page has focus by clicking on the body
+  private async fireAtBlock(_position: 'left' | 'center' | 'right', targetX: number): Promise<void> {
+    // Ensure page has focus
     await this.page.click('body', { force: true });
-    await this.page.waitForTimeout(150);
-
-    // Reset spaceship to left edge first (ensures consistent starting position)
-    // This is necessary because the spaceship doesn't reset between rounds
-    const resetKeyCount = 15;
-    for (let i = 0; i < resetKeyCount; i++) {
-      await this.page.keyboard.press('a');
-      await this.page.waitForTimeout(30);
-    }
     await this.page.waitForTimeout(100);
 
-    // Now move from left edge to target position using D key
-    // Movement speed is ~5 units per key press, canvas is ~500 units
-    // Left edge = 0 moves, Center = ~10 moves, Right edge = ~20 moves
-    let moveCount = 0;
-    if (position === 'left') {
-      moveCount = 0; // Already at left edge
-    } else if (position === 'center') {
-      moveCount = 10; // Move to center
-    } else if (position === 'right') {
-      moveCount = 20; // Move to right edge
-    }
+    // Get current starship position and canvas width from game state
+    const gameState = await this.page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const state = (window as any).__gameState;
+      return {
+        starshipX: state?.starshipX ?? 0,
+        canvasWidth: state?.canvasWidth ?? 400,
+        gameState: state?.gameState ?? 'UNKNOWN'
+      };
+    });
 
-    for (let i = 0; i < moveCount; i++) {
-      await this.page.keyboard.press('d');
-      await this.page.waitForTimeout(30);
-    }
+    const currentX = gameState.starshipX;
+    const deltaX = targetX - currentX;
 
-    // Ensure spaceship has reached position
-    await this.page.waitForTimeout(150);
+    // Movement speed is 8 units per frame (from Game.tsx moveSpeed)
+    // Each key press moves approximately 8 units
+    const moveSpeed = 8;
+    const keysNeeded = Math.abs(Math.round(deltaX / moveSpeed));
+    const direction = deltaX > 0 ? 'd' : 'a';
+
+    // Move spaceship to target position by holding the key down
+    // The game uses keysPressed.has() which checks if key is currently pressed
+    // keyboard.press() does keydown+keyup too quickly, so we use down/up with delays
+    const keyToHold = direction === 'd' ? 'ArrowRight' : 'ArrowLeft';
+
+    // Only move if we actually need to
+    if (keysNeeded > 0) {
+      // Hold the key down for the duration of movement
+      // Movement is 8 units per frame at 60fps = 8 units per ~16ms
+      // For deltaX of 170, we need ~21 frames = ~350ms
+      const holdDuration = keysNeeded * 20;
+
+      await this.page.keyboard.down(keyToHold);
+      await this.page.waitForTimeout(holdDuration);
+      await this.page.keyboard.up(keyToHold);
+
+      // Small delay to ensure spaceship position is updated
+      await this.page.waitForTimeout(50);
+
+    }
 
     // Fire with Space
     await this.page.keyboard.press('Space');
 
-    // Wait for projectile to travel and hit (projectile is fast but need buffer)
-    await this.page.waitForTimeout(2000);
+    // Wait for projectile to travel and hit
+    // Projectile speed is 15 units/frame, canvas height ~600, so max travel time ~40 frames = ~670ms at 60fps
+    // Add buffer for collision detection and state update
+    await this.page.waitForTimeout(1000);
   }
 }
