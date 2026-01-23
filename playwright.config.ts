@@ -12,10 +12,12 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [
-    ['line'],
-    ['html', { open: 'always', outputFolder: 'playwright-report' }],
-  ],
+  reporter: process.env.CI
+    ? [['blob', { outputDir: 'blob-report' }]]
+    : [
+        ['line'],
+        ['html', { open: 'always', outputFolder: 'playwright-report' }],
+      ],
   outputDir: 'test-results',
 
   use: {
