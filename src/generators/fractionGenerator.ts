@@ -257,8 +257,7 @@ export function generateImproperFractionProblem(): MathProblem {
  * Generate wrong answers for fraction problems
  */
 export function generateFractionWrongAnswers(
-  correctAnswer: number | string,
-  _numericAnswer: number
+  correctAnswer: number | string
 ): (number | string)[] {
   const wrongAnswers: (number | string)[] = [];
 

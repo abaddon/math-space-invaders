@@ -13,7 +13,8 @@ import {
   serverTimestamp,
   Timestamp,
   increment,
-  type FieldValue
+  type FieldValue,
+  type DocumentReference
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Team, TeamMembership, TeamRole } from '../types';
@@ -547,8 +548,9 @@ export async function deleteTeam(teamId: string, requestorId: string): Promise<v
 
     if (totalDocs > 450) {
       // Chunked batch pattern for large teams
-      const chunks: Array<Array<{ ref: any; type: 'delete' | 'update'; data?: any }>> = [];
-      let currentChunk: Array<{ ref: any; type: 'delete' | 'update'; data?: any }> = [];
+      type BatchOperation = { ref: DocumentReference; type: 'delete' | 'update'; data?: Record<string, unknown> };
+      const chunks: Array<Array<BatchOperation>> = [];
+      let currentChunk: Array<BatchOperation> = [];
 
       // Add team deletion
       currentChunk.push({ ref: doc(db, TEAMS_COLLECTION, teamId), type: 'delete' });

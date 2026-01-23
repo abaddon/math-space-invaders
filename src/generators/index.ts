@@ -77,13 +77,13 @@ export function generateWrongAnswers(problem: MathProblem): (number | string)[] 
 
     case 'fraction':
     case 'improperFraction':
-      return generateFractionWrongAnswers(problem.correctAnswer, problem.numericAnswer);
+      return generateFractionWrongAnswers(problem.correctAnswer);
 
     case 'percentage':
       return generatePercentageWrongAnswers(problem.numericAnswer, problem);
 
     case 'metricConversion':
-      return generateMetricWrongAnswers(problem.numericAnswer, problem);
+      return generateMetricWrongAnswers(problem.numericAnswer);
 
     default:
       return generateArithmeticWrongAnswers(problem.numericAnswer, 'addition');

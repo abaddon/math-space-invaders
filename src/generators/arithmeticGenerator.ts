@@ -39,8 +39,8 @@ export function generateSubtractionProblem(digitType: DigitType): MathProblem {
   const range = DIFFICULTY_CONFIG.DIGIT_RANGES[digitType];
 
   // Generate two numbers and ensure larger - smaller
-  let num1 = randomInt(range.min, range.max);
-  let num2 = randomInt(range.min, range.max);
+  const num1 = randomInt(range.min, range.max);
+  const num2 = randomInt(range.min, range.max);
 
   // Ensure num1 >= num2 for positive result
   const operand1 = Math.max(num1, num2);

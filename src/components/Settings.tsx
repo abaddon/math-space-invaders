@@ -1,5 +1,5 @@
 // Settings Modal Component
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { isSoundEnabled, setSoundEnabled } from '../services/audioService';
 
 interface SettingsProps {
@@ -12,31 +12,26 @@ const SETTINGS_KEYS = {
   VIBRATION: 'mathInvaders_vibration',
 };
 
+// Helper functions to get initial state from localStorage
+function getInitialVisualEffects(): boolean {
+  const saved = localStorage.getItem(SETTINGS_KEYS.VISUAL_EFFECTS);
+  return saved !== null ? saved === 'true' : true;
+}
+
+function getInitialVibration(): boolean {
+  const saved = localStorage.getItem(SETTINGS_KEYS.VIBRATION);
+  return saved !== null ? saved === 'true' : true;
+}
+
+function getIsTouchDevice(): boolean {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
 export function Settings({ onClose }: SettingsProps) {
-  const [soundOn, setSoundOn] = useState(true);
-  const [visualEffectsOn, setVisualEffectsOn] = useState(true);
-  const [vibrationOn, setVibrationOn] = useState(true);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-
-  useEffect(() => {
-    setSoundOn(isSoundEnabled());
-
-    // Load visual effects setting
-    const savedVisualEffects = localStorage.getItem(SETTINGS_KEYS.VISUAL_EFFECTS);
-    if (savedVisualEffects !== null) {
-      setVisualEffectsOn(savedVisualEffects === 'true');
-    }
-
-    // Load vibration setting
-    const savedVibration = localStorage.getItem(SETTINGS_KEYS.VIBRATION);
-    if (savedVibration !== null) {
-      setVibrationOn(savedVibration === 'true');
-    }
-
-    // Check if touch device
-    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    setIsTouchDevice(isTouch);
-  }, []);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  const [visualEffectsOn, setVisualEffectsOn] = useState(getInitialVisualEffects);
+  const [vibrationOn, setVibrationOn] = useState(getInitialVibration);
+  const [isTouchDevice] = useState(getIsTouchDevice);
 
   const handleSoundToggle = () => {
     const newValue = !soundOn;

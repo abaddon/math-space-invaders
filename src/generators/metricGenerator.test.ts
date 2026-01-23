@@ -100,45 +100,18 @@ describe('metricGenerator', () => {
 
   describe('generateMetricWrongAnswers', () => {
     it('generates exactly 2 wrong answers', () => {
-      const mockProblem = {
-        operand1: '5 km',
-        operation: 'metricConversion' as const,
-        correctAnswer: '5,000 m',
-        numericAnswer: 5000,
-        displayString: 'Convert 5 km to m = ?',
-        answerFormat: 'unit' as const,
-      };
-
-      const wrongAnswers = generateMetricWrongAnswers(5000, mockProblem);
+      const wrongAnswers = generateMetricWrongAnswers(5000);
       expect(wrongAnswers).toHaveLength(2);
     });
 
     it('generates unique wrong answers', () => {
-      const mockProblem = {
-        operand1: '5 km',
-        operation: 'metricConversion' as const,
-        correctAnswer: '5,000 m',
-        numericAnswer: 5000,
-        displayString: 'Convert 5 km to m = ?',
-        answerFormat: 'unit' as const,
-      };
-
-      const wrongAnswers = generateMetricWrongAnswers(5000, mockProblem);
+      const wrongAnswers = generateMetricWrongAnswers(5000);
       const uniqueAnswers = new Set(wrongAnswers);
       expect(uniqueAnswers.size).toBe(2);
     });
 
     it('generates wrong answers different from correct', () => {
-      const mockProblem = {
-        operand1: '10 m',
-        operation: 'metricConversion' as const,
-        correctAnswer: '1,000 cm',
-        numericAnswer: 1000,
-        displayString: 'Convert 10 m to cm = ?',
-        answerFormat: 'unit' as const,
-      };
-
-      const wrongAnswers = generateMetricWrongAnswers(1000, mockProblem);
+      const wrongAnswers = generateMetricWrongAnswers(1000);
 
       wrongAnswers.forEach((wrong) => {
         expect(wrong).not.toBe(1000);
@@ -146,16 +119,7 @@ describe('metricGenerator', () => {
     });
 
     it('generates positive wrong answers', () => {
-      const mockProblem = {
-        operand1: '2 kg',
-        operation: 'metricConversion' as const,
-        correctAnswer: '2,000 g',
-        numericAnswer: 2000,
-        displayString: 'Convert 2 kg to g = ?',
-        answerFormat: 'unit' as const,
-      };
-
-      const wrongAnswers = generateMetricWrongAnswers(2000, mockProblem);
+      const wrongAnswers = generateMetricWrongAnswers(2000);
 
       wrongAnswers.forEach((wrong) => {
         expect(wrong).toBeGreaterThan(0);
@@ -163,16 +127,7 @@ describe('metricGenerator', () => {
     });
 
     it('generates common metric conversion mistakes', () => {
-      const mockProblem = {
-        operand1: '1 L',
-        operation: 'metricConversion' as const,
-        correctAnswer: '1,000 mL',
-        numericAnswer: 1000,
-        displayString: 'Convert 1 L to mL = ?',
-        answerFormat: 'unit' as const,
-      };
-
-      const wrongAnswers = generateMetricWrongAnswers(1000, mockProblem);
+      const wrongAnswers = generateMetricWrongAnswers(1000);
 
       // Common mistakes include off by factor of 10
       wrongAnswers.forEach((wrong) => {
@@ -182,16 +137,7 @@ describe('metricGenerator', () => {
     });
 
     it('handles small conversion values', () => {
-      const mockProblem = {
-        operand1: '5000 m',
-        operation: 'metricConversion' as const,
-        correctAnswer: '5 km',
-        numericAnswer: 5,
-        displayString: 'Convert 5000 m to km = ?',
-        answerFormat: 'unit' as const,
-      };
-
-      const wrongAnswers = generateMetricWrongAnswers(5, mockProblem);
+      const wrongAnswers = generateMetricWrongAnswers(5);
 
       expect(wrongAnswers).toHaveLength(2);
       wrongAnswers.forEach((wrong) => {
@@ -201,16 +147,7 @@ describe('metricGenerator', () => {
     });
 
     it('handles large conversion values', () => {
-      const mockProblem = {
-        operand1: '10 m²',
-        operation: 'metricConversion' as const,
-        correctAnswer: '100,000 cm²',
-        numericAnswer: 100000,
-        displayString: 'Convert 10 m² to cm² = ?',
-        answerFormat: 'unit' as const,
-      };
-
-      const wrongAnswers = generateMetricWrongAnswers(100000, mockProblem);
+      const wrongAnswers = generateMetricWrongAnswers(100000);
 
       expect(wrongAnswers).toHaveLength(2);
       wrongAnswers.forEach((wrong) => {

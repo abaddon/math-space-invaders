@@ -133,14 +133,14 @@ describe('fractionGenerator', () => {
   describe('generateFractionWrongAnswers', () => {
     describe('with numeric correct answer', () => {
       it('generates exactly 2 wrong answers', () => {
-        const wrongAnswers = generateFractionWrongAnswers(8, 8);
+        const wrongAnswers = generateFractionWrongAnswers(8);
         expect(wrongAnswers).toHaveLength(2);
       });
 
       it('generates unique wrong answers', () => {
         for (let i = 0; i < 10; i++) {
           const correctAnswer = Math.floor(Math.random() * 20) + 5;
-          const wrongAnswers = generateFractionWrongAnswers(correctAnswer, correctAnswer);
+          const wrongAnswers = generateFractionWrongAnswers(correctAnswer);
 
           const uniqueAnswers = new Set(wrongAnswers.map(String));
           expect(uniqueAnswers.size).toBe(2);
@@ -150,7 +150,7 @@ describe('fractionGenerator', () => {
       it('generates wrong answers different from correct', () => {
         for (let i = 0; i < 10; i++) {
           const correctAnswer = Math.floor(Math.random() * 20) + 5;
-          const wrongAnswers = generateFractionWrongAnswers(correctAnswer, correctAnswer);
+          const wrongAnswers = generateFractionWrongAnswers(correctAnswer);
 
           wrongAnswers.forEach((wrong) => {
             expect(wrong).not.toBe(correctAnswer);
@@ -161,7 +161,7 @@ describe('fractionGenerator', () => {
       it('generates positive wrong answers', () => {
         for (let i = 0; i < 10; i++) {
           const correctAnswer = Math.floor(Math.random() * 20) + 5;
-          const wrongAnswers = generateFractionWrongAnswers(correctAnswer, correctAnswer);
+          const wrongAnswers = generateFractionWrongAnswers(correctAnswer);
 
           wrongAnswers.forEach((wrong) => {
             expect(wrong).toBeGreaterThan(0);
@@ -172,18 +172,18 @@ describe('fractionGenerator', () => {
 
     describe('with fraction string correct answer', () => {
       it('generates exactly 2 wrong answers', () => {
-        const wrongAnswers = generateFractionWrongAnswers('3/4', 0.75);
+        const wrongAnswers = generateFractionWrongAnswers('3/4');
         expect(wrongAnswers).toHaveLength(2);
       });
 
       it('generates unique wrong answers', () => {
-        const wrongAnswers = generateFractionWrongAnswers('3/4', 0.75);
+        const wrongAnswers = generateFractionWrongAnswers('3/4');
         const uniqueAnswers = new Set(wrongAnswers.map(String));
         expect(uniqueAnswers.size).toBe(2);
       });
 
       it('generates wrong answers different from correct', () => {
-        const wrongAnswers = generateFractionWrongAnswers('3/4', 0.75);
+        const wrongAnswers = generateFractionWrongAnswers('3/4');
 
         wrongAnswers.forEach((wrong) => {
           expect(wrong).not.toBe('3/4');
@@ -191,7 +191,7 @@ describe('fractionGenerator', () => {
       });
 
       it('generates plausible fraction wrong answers', () => {
-        const wrongAnswers = generateFractionWrongAnswers('3/4', 0.75);
+        const wrongAnswers = generateFractionWrongAnswers('3/4');
 
         wrongAnswers.forEach((wrong) => {
           expect(typeof wrong).toBe('string');
@@ -204,9 +204,7 @@ describe('fractionGenerator', () => {
         const testCases = ['1/2', '2/3', '5/8', '7/10'];
 
         testCases.forEach((fraction) => {
-          const parts = fraction.split('/');
-          const numeric = parseInt(parts[0]) / parseInt(parts[1]);
-          const wrongAnswers = generateFractionWrongAnswers(fraction, numeric);
+          const wrongAnswers = generateFractionWrongAnswers(fraction);
 
           expect(wrongAnswers).toHaveLength(2);
           wrongAnswers.forEach((wrong) => {
@@ -218,12 +216,12 @@ describe('fractionGenerator', () => {
 
     describe('edge cases', () => {
       it('handles small fractions', () => {
-        const wrongAnswers = generateFractionWrongAnswers('1/8', 0.125);
+        const wrongAnswers = generateFractionWrongAnswers('1/8');
         expect(wrongAnswers).toHaveLength(2);
       });
 
       it('handles fractions with large numerators', () => {
-        const wrongAnswers = generateFractionWrongAnswers('7/8', 0.875);
+        const wrongAnswers = generateFractionWrongAnswers('7/8');
         expect(wrongAnswers).toHaveLength(2);
         wrongAnswers.forEach((wrong) => {
           const parts = (wrong as string).split('/');
@@ -233,7 +231,7 @@ describe('fractionGenerator', () => {
       });
 
       it('handles whole number string answers', () => {
-        const wrongAnswers = generateFractionWrongAnswers('4', 4);
+        const wrongAnswers = generateFractionWrongAnswers('4');
         expect(wrongAnswers).toHaveLength(2);
       });
     });

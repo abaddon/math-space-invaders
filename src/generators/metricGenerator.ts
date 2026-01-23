@@ -90,8 +90,7 @@ export function generateMetricConversionProblem(): MathProblem {
  * Common mistakes: off by factor of 10, wrong direction
  */
 export function generateMetricWrongAnswers(
-  correctAnswer: number,
-  _problem: MathProblem
+  correctAnswer: number
 ): number[] {
   const wrongAnswers: number[] = [];
 

@@ -119,7 +119,7 @@ export function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
           trackAuthError(result.error || 'signup_failed', mode);
         }
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
       trackAuthError('unexpected_error', mode);
     } finally {
