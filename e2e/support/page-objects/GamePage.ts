@@ -148,67 +148,59 @@ export class GamePage extends BasePage {
    * Fire at a specific block using the actual X coordinate from game state.
    *
    * Strategy:
-   * 1. Get current spaceship X position and canvas width from game state
-   * 2. Calculate the exact movement needed (target X - current X)
-   * 3. Use keyboard keys to move to precise position
-   * 4. Press Space to fire
-   * 5. Wait for projectile to hit
+   * 1. Move towards target using timed key hold
+   * 2. Verify position and adjust if needed
+   * 3. Press Space to fire when aligned
+   * 4. Wait for projectile to hit
+   *
+   * Note: block.x is the CENTER of the block (100px wide).
+   * Projectile needs to be within ±50px of block center to hit.
+   * Tolerance of 40px ensures reliable hits.
    *
    * @param _position - Target column (unused, targetX is authoritative)
-   * @param targetX - Actual X coordinate of the target block from game state
+   * @param targetX - Actual X coordinate of the target block center from game state
    */
   private async fireAtBlock(_position: 'left' | 'center' | 'right', targetX: number): Promise<void> {
-    // Ensure page has focus
-    await this.page.click('body', { force: true });
-    await this.page.waitForTimeout(100);
+    // Ensure page/canvas has focus via keyboard interaction
+    // Use Tab to ensure we're focused on the page, not a specific element
+    await this.page.keyboard.press('Tab');
+    await this.page.waitForTimeout(30);
 
-    // Get current starship position and canvas width from game state
-    const gameState = await this.page.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const state = (window as any).__gameState;
-      return {
-        starshipX: state?.starshipX ?? 0,
-        canvasWidth: state?.canvasWidth ?? 400,
-        gameState: state?.gameState ?? 'UNKNOWN'
-      };
-    });
+    // Block is 100px wide, so we need to be within ±50px of center to hit
+    // Use tolerance of 40px for reliable hits with some margin
+    const tolerance = 40;
 
-    const currentX = gameState.starshipX;
-    const deltaX = targetX - currentX;
+    // Position the ship under the target with polling
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const currentX = await this.page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (window as any).__gameState?.starshipX ?? 0;
+      });
 
-    // Movement speed is 8 units per frame (from Game.tsx moveSpeed)
-    // Each key press moves approximately 8 units
-    const moveSpeed = 8;
-    const keysNeeded = Math.abs(Math.round(deltaX / moveSpeed));
-    const direction = deltaX > 0 ? 'd' : 'a';
+      const delta = targetX - currentX;
 
-    // Move spaceship to target position by holding the key down
-    // The game uses keysPressed.has() which checks if key is currently pressed
-    // keyboard.press() does keydown+keyup too quickly, so we use down/up with delays
-    const keyToHold = direction === 'd' ? 'ArrowRight' : 'ArrowLeft';
+      // Close enough - fire!
+      if (Math.abs(delta) <= tolerance) {
+        break;
+      }
 
-    // Only move if we actually need to
-    if (keysNeeded > 0) {
-      // Hold the key down for the duration of movement
-      // Movement is 8 units per frame at 60fps = 8 units per ~16ms
-      // For deltaX of 170, we need ~21 frames = ~350ms
-      const holdDuration = keysNeeded * 20;
+      // Calculate movement
+      const keyToPress = delta > 0 ? 'ArrowRight' : 'ArrowLeft';
+      const framesNeeded = Math.abs(delta) / 8;
+      // For small adjustments, use minimum of 2 frames
+      // For larger movements, use calculated time
+      const holdDuration = Math.max(Math.round(framesNeeded * 17), 34);
 
-      await this.page.keyboard.down(keyToHold);
+      await this.page.keyboard.down(keyToPress);
       await this.page.waitForTimeout(holdDuration);
-      await this.page.keyboard.up(keyToHold);
-
-      // Small delay to ensure spaceship position is updated
-      await this.page.waitForTimeout(50);
-
+      await this.page.keyboard.up(keyToPress);
+      await this.page.waitForTimeout(20);
     }
 
-    // Fire with Space
+    // Fire
     await this.page.keyboard.press('Space');
 
     // Wait for projectile to travel and hit
-    // Projectile speed is 15 units/frame, canvas height ~600, so max travel time ~40 frames = ~670ms at 60fps
-    // Add buffer for collision detection and state update
     await this.page.waitForTimeout(1000);
   }
 }
