@@ -75,7 +75,7 @@ export function TeamPage({ authUser, currentPlayer, onPlayerUpdate, onLogout, on
     };
 
     attemptAutoJoin();
-  }, [currentTeam, authUser, passwordFromHash, hasAttemptedAutoJoin, joinSuccess, refreshMyTeams]);
+  }, [currentTeam, authUser, passwordFromHash, hasAttemptedAutoJoin, joinSuccess, refreshMyTeams, setCurrentTeamBySlug]);
 
   // Handle manual join (form submission)
   const handleManualJoin = async (e: React.FormEvent) => {

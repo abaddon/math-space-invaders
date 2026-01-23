@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getTeamMembersWithStats, bulkRemoveMembers, type TeamMemberWithStats } from '../services/teamService';
 import './MemberList.css';
 
@@ -20,12 +20,8 @@ export function MemberList({ teamId, authPlayerId, onClose, onMembersChanged }: 
   const creatorMembership = members.find(m => m.role === 'creator');
   const creatorMembershipId = creatorMembership?.id;
 
-  // Load members on mount
-  useEffect(() => {
-    loadMembers();
-  }, [teamId]);
-
-  const loadMembers = async () => {
+  // Load members function
+  const loadMembers = useCallback(async () => {
     setIsLoading(true);
     setError('');
     try {
@@ -37,7 +33,12 @@ export function MemberList({ teamId, authPlayerId, onClose, onMembersChanged }: 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [teamId]);
+
+  // Load members on mount and when teamId changes
+  useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
 
   const toggleSelection = (membershipId: string) => {
     const newSelected = new Set(selectedIds);

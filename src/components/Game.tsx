@@ -451,7 +451,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
     // Track game start
     trackGameStart(authUser.playerId);
     trackScreenView('game');
-  }, [canvasSize.width, authUser.playerId, slug]);
+  }, [canvasSize.width, authUser.playerId, slug, teamId]);
 
   // Countdown effect
   useEffect(() => {
