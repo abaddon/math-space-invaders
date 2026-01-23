@@ -101,13 +101,15 @@ Given('I have no active session', async ({ page }) => {
 
 When('I reload the page', async ({ page }) => {
   await page.reload();
-  await page.waitForLoadState('networkidle');
+  // Use 'load' instead of 'networkidle' - Firebase emulator keeps connections open
+  await page.waitForLoadState('load');
 });
 
 When('I navigate away and return', async ({ page }) => {
   await page.goto('about:blank');
   await page.goto('/');
-  await page.waitForLoadState('networkidle');
+  // Use 'load' instead of 'networkidle' - Firebase emulator keeps connections open
+  await page.waitForLoadState('load');
 });
 
 When('I click the logout button', async ({ page }) => {
