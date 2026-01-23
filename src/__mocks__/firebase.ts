@@ -43,12 +43,12 @@ export function setMockQueryResults(queryKey: string, results: Record<string, un
 export const db = {};
 
 // Mock collection reference
-export const collection = vi.fn((db: unknown, collectionPath: string) => ({
+export const collection = vi.fn((_db: unknown, collectionPath: string) => ({
   path: collectionPath,
 }));
 
 // Mock document reference
-export const doc = vi.fn((dbOrRef: unknown, ...pathSegments: string[]) => {
+export const doc = vi.fn((_dbOrRef: unknown, ...pathSegments: string[]) => {
   const path = pathSegments.join('/');
   return {
     id: pathSegments[pathSegments.length - 1] || 'mock-id',
@@ -77,7 +77,7 @@ export const getDocs = vi.fn(async (queryRef: { _constraints?: { field: string; 
   if (queryRef._constraints && queryRef._constraints.length > 0) {
     const constraint = queryRef._constraints[0];
     const queryKey = `${constraint.field}:${constraint.value}`;
-    results = mockQueryResults[queryKey] || [];
+    results = (mockQueryResults[queryKey] || []) as Record<string, unknown>[];
   }
 
   const docs: MockDocSnapshot[] = results.map((data, index) => ({

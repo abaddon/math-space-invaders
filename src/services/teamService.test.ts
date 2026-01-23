@@ -173,8 +173,8 @@ describe('teamService', () => {
     });
 
     it('empty/whitespace name validation', () => {
-      const empty = '';
-      const whitespace = '   ';
+      const empty: string = '';
+      const whitespace: string = '   ';
 
       expect(!empty || empty.trim().length === 0).toBe(true);
       expect(!whitespace || whitespace.trim().length === 0).toBe(true);
@@ -284,7 +284,7 @@ describe('teamService', () => {
     });
 
     it('member can leave team', () => {
-      const role = 'member';
+      const role: string = 'member';
 
       expect(role !== 'creator').toBe(true);
       // Would proceed with leave operation

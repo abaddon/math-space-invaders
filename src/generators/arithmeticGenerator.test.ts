@@ -234,8 +234,7 @@ describe('arithmeticGenerator', () => {
     });
 
     it('defaults to addition for unknown operation', () => {
-      // @ts-expect-error testing invalid operation type
-      const problem = generateArithmeticProblem('fraction', 'single');
+      const problem = generateArithmeticProblem('fraction' as 'addition', 'single');
       expect(problem.operation).toBe('addition');
     });
   });
