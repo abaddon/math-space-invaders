@@ -66,7 +66,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
   const gameLoopRef = useRef<number | null>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   const isProcessingWrongAnswer = useRef(false);
-  const collisionThisFrame = useRef<boolean>(false);
+  const projectileRef = useRef<Projectile | null>(null);
   const touchControlsActive = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
@@ -329,6 +329,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
     );
     setAnswerBlocks(blocks);
     setProjectile(null);
+    projectileRef.current = null;
     setLastHitResult(null);
     // Reset timer for new problem
     setProblemStartTime(Date.now());
@@ -449,6 +450,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
     setStarshipX(canvasSize.width / 2);
     setAnswerBlocks([]);
     setProjectile(null);
+    projectileRef.current = null;
     setTimeRemaining(1);
 
     // Start countdown
@@ -481,11 +483,13 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
   const fireProjectile = useCallback(() => {
     if (projectile?.active || gameState !== 'PLAYING') return;
     playSound('laser');
-    setProjectile({
+    const newProjectile = {
       x: starshipX,
       y: canvasSize.height - 120,
       active: true,
-    });
+    };
+    setProjectile(newProjectile);
+    projectileRef.current = newProjectile;
   }, [projectile, starshipX, canvasSize.height, gameState]);
 
   // Skip level up screen
@@ -579,48 +583,59 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
         return updated;
       });
 
-      // Update projectile
+      // Update projectile position and sync to ref in same callback
+      // This ensures projectileRef has the new position for collision detection
       setProjectile((proj) => {
-        if (!proj || !proj.active) return proj;
+        if (!proj || !proj.active) {
+          projectileRef.current = proj;
+          return proj;
+        }
         const newY = proj.y - GAME_CONFIG.PROJECTILE_SPEED;
-        if (newY < 0) return { ...proj, active: false };
-        return { ...proj, y: newY };
+        if (newY < 0) {
+          const updated = { ...proj, active: false };
+          projectileRef.current = updated;
+          return updated;
+        }
+        const updated = { ...proj, y: newY };
+        projectileRef.current = updated;
+        return updated;
       });
 
-      // Check collisions
-      collisionThisFrame.current = false;
-
+      // Check collisions using projectileRef (always has latest position)
+      // This avoids the nested setState problem in React 19
       setAnswerBlocks((blocks) => {
         if (blocks.length === 0) return blocks;
 
-        setProjectile((proj) => {
-          if (!proj || !proj.active) return proj;
+        const proj = projectileRef.current;
+        if (!proj || !proj.active) return blocks;
 
-          for (const block of blocks) {
-            const dx = Math.abs(proj.x - block.x);
-            const dy = Math.abs(proj.y - block.y);
+        for (const block of blocks) {
+          const dx = Math.abs(proj.x - block.x);
+          const dy = Math.abs(proj.y - block.y);
 
-            if (dx < answerBlockWidth / 2 + 5 &&
-                dy < GAME_CONFIG.ANSWER_BLOCK_HEIGHT / 2 + 5) {
-              // Spawn particles at hit location
-              spawnParticles(block.x, block.y, block.isCorrect);
+          if (dx < answerBlockWidth / 2 + 5 &&
+              dy < GAME_CONFIG.ANSWER_BLOCK_HEIGHT / 2 + 5) {
+            // Spawn particles at hit location
+            spawnParticles(block.x, block.y, block.isCorrect);
 
-              if (block.isCorrect) {
-                handleCorrectAnswer();
-              } else {
-                handleWrongAnswer();
-              }
-
-              // Mark collision and deactivate projectile
-              collisionThisFrame.current = true;
-              return { ...proj, active: false };
+            if (block.isCorrect) {
+              handleCorrectAnswer();
+            } else {
+              handleWrongAnswer();
             }
-          }
-          return proj;
-        });
 
-        // Return empty array if collision detected, otherwise keep blocks
-        return collisionThisFrame.current ? [] : blocks;
+            // Deactivate projectile separately (not nested)
+            setProjectile(p => {
+              const updated = p ? { ...p, active: false } : p;
+              projectileRef.current = updated;
+              return updated;
+            });
+
+            // Clear blocks on collision
+            return [];
+          }
+        }
+        return blocks;
       });
 
       // Update particles
