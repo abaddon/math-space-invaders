@@ -166,6 +166,49 @@ npm run build
 
 The built files will be in the `dist/` folder, ready to deploy to any static hosting service.
 
+### Running Tests
+
+#### Unit Tests (Vitest)
+
+```bash
+# Run tests in watch mode
+npm test
+
+# Run tests once
+npm run test:run
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests with interactive UI
+npm run test:ui
+```
+
+#### E2E Tests (Playwright + Cucumber BDD)
+
+E2E tests require the Firebase emulator to be running.
+
+```bash
+# Terminal 1: Start Firebase emulator
+npm run emulator:start
+
+# Terminal 2: Run E2E tests
+npm run test:e2e
+```
+
+Additional E2E test modes:
+
+```bash
+# Run with browser visible
+npm run test:e2e:headed
+
+# Run with Playwright debugger
+npm run test:e2e:debug
+
+# Run with interactive UI
+npm run test:e2e:ui
+```
+
 ## Project Structure
 
 ```
