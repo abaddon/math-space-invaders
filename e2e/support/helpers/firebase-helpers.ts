@@ -11,15 +11,23 @@ import {
   doc,
   setDoc,
   serverTimestamp,
+  connectFirestoreEmulator,
   type Firestore,
   type FieldValue,
 } from 'firebase/firestore';
+import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth';
 
 // Collection names (matching app constants)
 const LEADERBOARD_COLLECTION = 'leaderboard';
 const TEAM_LEADERBOARD_COLLECTION = 'teamLeaderboard';
 const TEAMS_COLLECTION = 'teams';
 const TEAM_MEMBERSHIPS_COLLECTION = 'teamMemberships';
+
+// Emulator configuration
+const EMULATOR_HOST = '127.0.0.1';
+const AUTH_EMULATOR_PORT = 9099;
+const FIRESTORE_EMULATOR_PORT = 8080;
+const USE_EMULATOR = process.env.USE_FIREBASE_EMULATOR === 'true';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -31,9 +39,18 @@ const firebaseConfig = {
   appId: process.env.VITE_FIREBASE_APP_ID || '',
 };
 
+// Demo configuration for emulator (no real Firebase project needed)
+const emulatorConfig = {
+  apiKey: 'demo-api-key',
+  authDomain: 'demo-test-project.firebaseapp.com',
+  projectId: 'demo-test-project',
+};
+
 // Singleton instances
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
+let auth: Auth | null = null;
+let emulatorConnected = false;
 
 /**
  * Initialize Firebase app (singleton pattern to avoid multiple initializations)
@@ -41,14 +58,26 @@ let db: Firestore | null = null;
 function getFirebaseApp(): FirebaseApp {
   if (app) return app;
 
+  // Use demo config for emulator, real config otherwise
+  const config = USE_EMULATOR ? emulatorConfig : firebaseConfig;
+
   const existingApps = getApps();
   if (existingApps.length > 0) {
     app = existingApps[0];
   } else {
-    app = initializeApp(firebaseConfig, 'e2e-test-app');
+    app = initializeApp(config, 'e2e-test-app');
   }
 
   return app;
+}
+
+/**
+ * Get Firebase Auth instance
+ */
+function getFirebaseAuth(): Auth {
+  if (auth) return auth;
+  auth = getAuth(getFirebaseApp());
+  return auth;
 }
 
 /**
@@ -57,6 +86,19 @@ function getFirebaseApp(): FirebaseApp {
 function getDb(): Firestore {
   if (db) return db;
   db = getFirestore(getFirebaseApp());
+
+  // Connect to emulators only once
+  if (USE_EMULATOR && !emulatorConnected) {
+    connectFirestoreEmulator(db, EMULATOR_HOST, FIRESTORE_EMULATOR_PORT);
+    connectAuthEmulator(
+      getFirebaseAuth(),
+      `http://${EMULATOR_HOST}:${AUTH_EMULATOR_PORT}`,
+      { disableWarnings: true }
+    );
+    emulatorConnected = true;
+    console.log('[E2E] Connected to Firebase Emulator');
+  }
+
   return db;
 }
 
