@@ -66,6 +66,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
   const gameLoopRef = useRef<number | null>(null);
   const keysPressed = useRef<Set<string>>(new Set());
   const isProcessingWrongAnswer = useRef(false);
+  const collisionThisFrame = useRef<boolean>(false);
   const touchControlsActive = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
@@ -261,6 +262,9 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
         lives: number;
         correctInLevel: number;
         gameState: GameState;
+        starshipX: number;
+        canvasWidth: number;
+        projectile: { x: number; y: number; active: boolean } | null;
         answerBlocks: Array<{
           position: 'left' | 'center' | 'right';
           value: string | number;
@@ -282,6 +286,9 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
         lives: score.lives,
         correctInLevel: score.correctInLevel,
         gameState: gameState,
+        starshipX: starshipX,
+        canvasWidth: canvasSize.width,
+        projectile: projectile ? { x: projectile.x, y: projectile.y, active: projectile.active } : null,
         answerBlocks: answerBlocks.map((block, index) => ({
           position: (['left', 'center', 'right'] as const)[index],
           value: block.value,
@@ -300,7 +307,7 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
         delete (window as WindowWithGameState).__gameState;
       }
     };
-  }, [score, gameState, answerBlocks, currentProblem]);
+  }, [score, gameState, answerBlocks, currentProblem, starshipX, canvasSize.width, projectile]);
 
   // Calculate speed based on time-based difficulty system
   const getCurrentSpeed = useCallback((): number => {
@@ -581,9 +588,13 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
       });
 
       // Check collisions
+      collisionThisFrame.current = false;
+
       setAnswerBlocks((blocks) => {
+        if (blocks.length === 0) return blocks;
+
         setProjectile((proj) => {
-          if (!proj || !proj.active || blocks.length === 0) return proj;
+          if (!proj || !proj.active) return proj;
 
           for (const block of blocks) {
             const dx = Math.abs(proj.x - block.x);
@@ -599,13 +610,17 @@ export function Game({ authUser, currentPlayer, onPlayerUpdate, onLogout, onOpen
               } else {
                 handleWrongAnswer();
               }
-              setAnswerBlocks([]);
+
+              // Mark collision and deactivate projectile
+              collisionThisFrame.current = true;
               return { ...proj, active: false };
             }
           }
           return proj;
         });
-        return blocks;
+
+        // Return empty array if collision detected, otherwise keep blocks
+        return collisionThisFrame.current ? [] : blocks;
       });
 
       // Update particles
