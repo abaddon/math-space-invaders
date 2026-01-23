@@ -4,6 +4,8 @@ An educational math game that helps kids learn arithmetic through engaging Space
 
 ![Platform](https://img.shields.io/badge/Platform-Web-blue) ![License](https://img.shields.io/badge/License-MIT-green) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue) ![React](https://img.shields.io/badge/React-19-61dafb)
 
+[![E2E Tests](https://github.com/abaddon/math-space-invaders/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/abaddon/math-space-invaders/actions/workflows/e2e-tests.yml)
+
 ## Play Now!
 
 **[Play Math Space Invaders](https://abaddon.github.io/math-space-invaders/)**
