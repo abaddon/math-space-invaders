@@ -47,7 +47,7 @@ jobs:
       - name: Start Firebase Emulator
         run: |
           npx firebase emulators:start --only auth,firestore --project demo-test-project &
-          npx wait-on http://127.0.0.1:9099 http://127.0.0.1:8080 --timeout 60000
+          npx wait-on tcp:127.0.0.1:9099 tcp:127.0.0.1:8080 --timeout 60000
 
       - name: Run E2E tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: npx bddgen && npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
